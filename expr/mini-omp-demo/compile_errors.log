@@ -1,0 +1,205 @@
+cri.c:2:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+cri.c: In function ‘main’:
+cri.c:12:16: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+                printf("before thread %d : X = %d\n",id,x);
+                ^~~~~~
+cri.c:12:16: warning: incompatible implicit declaration of built-in function ‘printf’
+cri.c:12:16: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+cri.c:2:1:
++#include <stdio.h>
+ main()
+cri.c:12:16:
+                printf("before thread %d : X = %d\n",id,x);
+                ^~~~~~
+cri.c:19:2: warning: incompatible implicit declaration of built-in function ‘printf’
+  printf("out of the parallel region : X = %d\n",x);
+  ^~~~~~
+cri.c:19:2: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+critical.c:2:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+critical.c: In function ‘main’:
+critical.c:12:2: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+  printf("out of the parallel region : X = %d\n",x);
+  ^~~~~~
+critical.c:12:2: warning: incompatible implicit declaration of built-in function ‘printf’
+critical.c:12:2: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+critical.c:2:1:
++#include <stdio.h>
+ main()
+critical.c:12:2:
+  printf("out of the parallel region : X = %d\n",x);
+  ^~~~~~
+dis-err.c:17:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+dis-ok1.c:17:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+dis-ok.c:17:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+master.c:2:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+master.c: In function ‘main’:
+master.c:14:2: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+  printf("out of the parallel region : X = %d\n",x);
+  ^~~~~~
+master.c:14:2: warning: incompatible implicit declaration of built-in function ‘printf’
+master.c:14:2: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+master.c:2:1:
++#include <stdio.h>
+ main()
+master.c:14:2:
+  printf("out of the parallel region : X = %d\n",x);
+  ^~~~~~
+pfor.c: In function ‘main’:
+pfor.c:21:32: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     if (  (i % chunk) == 0 )   printf("Iteration #%d in thread #%d\n",i, id);
+                                ^~~~~~
+pfor.c:21:32: warning: incompatible implicit declaration of built-in function ‘printf’
+pfor.c:21:32: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+pfor.c:2:1:
++#include <stdio.h>
+ #define N       100000
+pfor.c:21:32:
+     if (  (i % chunk) == 0 )   printf("Iteration #%d in thread #%d\n",i, id);
+                                ^~~~~~
+pfor-no-schedule.c: In function ‘main’:
+pfor-no-schedule.c:20:39: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+                   if ( (i%chunk)==0 ) printf("Iteration #%d in  thread #%d\n",i, id);
+                                       ^~~~~~
+pfor-no-schedule.c:20:39: warning: incompatible implicit declaration of built-in function ‘printf’
+pfor-no-schedule.c:20:39: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+pfor-no-schedule.c:2:1:
++#include <stdio.h>
+ #define N       100000
+pfor-no-schedule.c:20:39:
+                   if ( (i%chunk)==0 ) printf("Iteration #%d in  thread #%d\n",i, id);
+                                       ^~~~~~
+pi01.c: In function ‘main’:
+pi01.c:24:1: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+ printf("Pi = %lf\n",pi);
+ ^~~~~~
+pi01.c:24:1: warning: incompatible implicit declaration of built-in function ‘printf’
+pi01.c:24:1: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+pi01.c:2:1:
++#include <stdio.h>
+ static long num_steps = 100000;
+pi01.c:24:1:
+ printf("Pi = %lf\n",pi);
+ ^~~~~~
+pi02.c: In function ‘main’:
+pi02.c:21:4: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+    printf("Pi = %lf\n",pi);
+    ^~~~~~
+pi02.c:21:4: warning: incompatible implicit declaration of built-in function ‘printf’
+pi02.c:21:4: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+pi02.c:2:1:
++#include <stdio.h>
+ static long num_steps = 100000;
+pi02.c:21:4:
+    printf("Pi = %lf\n",pi);
+    ^~~~~~
+pi03.c: In function ‘main’:
+pi03.c:26:2: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+  printf("Pi = %lf\n",pi);
+  ^~~~~~
+pi03.c:26:2: warning: incompatible implicit declaration of built-in function ‘printf’
+pi03.c:26:2: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+pi03.c:2:1:
++#include <stdio.h>
+ static long num_steps = 100000;
+pi03.c:26:2:
+  printf("Pi = %lf\n",pi);
+  ^~~~~~
+pi04.c: In function ‘main’:
+pi04.c:16:4: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+    printf("Pi = %lf\n",pi);
+    ^~~~~~
+pi04.c:16:4: warning: incompatible implicit declaration of built-in function ‘printf’
+pi04.c:16:4: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+pi04.c:2:1:
++#include <stdio.h>
+ static long num_steps = 100000;
+pi04.c:16:4:
+    printf("Pi = %lf\n",pi);
+    ^~~~~~
+private.c:6:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+private.c: In function ‘main’:
+private.c:18:5: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     printf("I am thread %d :alpha[3] = %d and beta[3] = %d\n", omp_get_thread_num(),alpha[3],beta[3]);
+     ^~~~~~
+private.c:18:5: warning: incompatible implicit declaration of built-in function ‘printf’
+private.c:18:5: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+private.c:2:1:
++#include <stdio.h>
+ 
+private.c:18:5:
+     printf("I am thread %d :alpha[3] = %d and beta[3] = %d\n", omp_get_thread_num(),alpha[3],beta[3]);
+     ^~~~~~
+reduction.c: In function ‘main’:
+reduction.c:18:2: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+  printf("Final result= %f\n",result);
+  ^~~~~~
+reduction.c:18:2: warning: incompatible implicit declaration of built-in function ‘printf’
+reduction.c:18:2: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+reduction.c:2:1:
++#include <stdio.h>
+ int main ()
+reduction.c:18:2:
+  printf("Final result= %f\n",result);
+  ^~~~~~
+section.c: In function ‘main’:
+section.c:15:3: error: expected ‘#pragma omp section’ or ‘}’
+   printf("working in Thread %d\n",id);
+   ^~~~~~
+section.c:15:3: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+section.c:15:3: warning: incompatible implicit declaration of built-in function ‘printf’
+section.c:15:3: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+section.c:2:1:
++#include <stdio.h>
+ #define N     1000
+section.c:15:3:
+   printf("working in Thread %d\n",id);
+   ^~~~~~
+section.c:20:3: error: expected ‘#pragma omp section’ or ‘}’
+   printf("working in Thread %d\n",id);
+   ^~~~~~
+编译失败: section.c
+single.c:2:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ main()
+ ^~~~
+single.c: In function ‘main’:
+single.c:11:10: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+          printf("I am thread #%d\n",id);
+          ^~~~~~
+single.c:11:10: warning: incompatible implicit declaration of built-in function ‘printf’
+single.c:11:10: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+single.c:2:1:
++#include <stdio.h>
+ main()
+single.c:11:10:
+          printf("I am thread #%d\n",id);
+          ^~~~~~
+single.c:16:2: warning: incompatible implicit declaration of built-in function ‘printf’
+  printf("out of the parallel region : X = %d\n",x);
+  ^~~~~~
+single.c:16:2: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+threadprivate.c: In function ‘main’:
+threadprivate.c:12:3: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+   printf("alpha[3]= %d and beta[3]=%d\n",alpha[3],beta[3]);
+   ^~~~~~
+threadprivate.c:12:3: warning: incompatible implicit declaration of built-in function ‘printf’
+threadprivate.c:12:3: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+threadprivate.c:2:1:
++#include <stdio.h>
+ int alpha[10], beta[10], i;
+threadprivate.c:12:3:
+   printf("alpha[3]= %d and beta[3]=%d\n",alpha[3],beta[3]);
+   ^~~~~~

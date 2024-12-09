@@ -1,0 +1,215 @@
+allgather.c: In function ‘main’:
+allgather.c:16:10: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+          printf("My rank =  %d  irecv = %d\n", rank, irecv[i]);
+          ^~~~~~
+allgather.c:16:10: warning: incompatible implicit declaration of built-in function ‘printf’
+allgather.c:16:10: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+allgather.c:2:1:
++#include <stdio.h>
+ int main( int argc, char* argv[] )
+allgather.c:16:10:
+          printf("My rank =  %d  irecv = %d\n", rank, irecv[i]);
+          ^~~~~~
+allgatherv.c: In function ‘main’:
+allgatherv.c:14:22: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     if ( rank == 0 ) printf(" This program must run with 3 processes: np = 3\n");
+                      ^~~~~~
+allgatherv.c:14:22: warning: incompatible implicit declaration of built-in function ‘printf’
+allgatherv.c:14:22: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+allgatherv.c:2:1:
++#include <stdio.h>
+ 
+allgatherv.c:14:22:
+     if ( rank == 0 ) printf(" This program must run with 3 processes: np = 3\n");
+                      ^~~~~~
+allgatherv.c:22:13: warning: incompatible implicit declaration of built-in function ‘printf’
+             printf("My rank = %d irecv = %d\n", rank, irecv[i]);
+             ^~~~~~
+allgatherv.c:22:13: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+alltoall.c: In function ‘main’:
+alltoall.c:12:4: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+    printf("Before : My rank = %d  <",rank );
+    ^~~~~~
+alltoall.c:12:4: warning: incompatible implicit declaration of built-in function ‘printf’
+alltoall.c:12:4: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+alltoall.c:2:1:
++#include <stdio.h>
+ 
+alltoall.c:12:4:
+    printf("Before : My rank = %d  <",rank );
+    ^~~~~~
+alltoallv.c: In function ‘main’:
+alltoallv.c:20:42: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     for(i=0; i<iscnt[rank] * nproc; i++) printf("My rank %d  irecv = %d\n", rank, irecv[i]);
+                                          ^~~~~~
+alltoallv.c:20:42: warning: incompatible implicit declaration of built-in function ‘printf’
+alltoallv.c:20:42: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+alltoallv.c:2:1:
++#include <stdio.h>
+ int main( int argc, char* argv[] ){
+alltoallv.c:20:42:
+     for(i=0; i<iscnt[rank] * nproc; i++) printf("My rank %d  irecv = %d\n", rank, irecv[i]);
+                                          ^~~~~~
+bcast.c: In function ‘main’:
+bcast.c:14:20: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     if (rank !=0 ) printf("my rank = %d  ibuf = %d\n", rank,ibuf);
+                    ^~~~~~
+bcast.c:14:20: warning: incompatible implicit declaration of built-in function ‘printf’
+bcast.c:14:20: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+bcast.c:2:1:
++#include <stdio.h>
+ 
+bcast.c:14:20:
+     if (rank !=0 ) printf("my rank = %d  ibuf = %d\n", rank,ibuf);
+                    ^~~~~~
+gather.c: In function ‘main’:
+gather.c:17:13: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+             printf("irecv = %d\n", irecv[i]);
+             ^~~~~~
+gather.c:17:13: warning: incompatible implicit declaration of built-in function ‘printf’
+gather.c:17:13: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+gather.c:2:1:
++#include <stdio.h>
+ 
+gather.c:17:13:
+             printf("irecv = %d\n", irecv[i]);
+             ^~~~~~
+gatherv.c: In function ‘main’:
+gatherv.c:13:21: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+    if ( rank == 0 ) printf("This program must run with 3 processes: np = 3 \n");
+                     ^~~~~~
+gatherv.c:13:21: warning: incompatible implicit declaration of built-in function ‘printf’
+gatherv.c:13:21: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+gatherv.c:2:1:
++#include <stdio.h>
+ 
+gatherv.c:13:21:
+    if ( rank == 0 ) printf("This program must run with 3 processes: np = 3 \n");
+                     ^~~~~~
+gatherv.c:21:34: warning: incompatible implicit declaration of built-in function ‘printf’
+              for(i=0; i<6; i++)  printf("irecv = %d\n", irecv[i]);
+                                  ^~~~~~
+gatherv.c:21:34: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+isend_irecv.c: In function ‘main’:
+isend_irecv.c:20:9: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+         printf( "irbuf = %d source = %d tag = %d count = %d\n",
+         ^~~~~~
+isend_irecv.c:20:9: warning: incompatible implicit declaration of built-in function ‘printf’
+isend_irecv.c:20:9: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+isend_irecv.c:2:1:
++#include <stdio.h>
+ int main( int argc, char* argv[] ){
+isend_irecv.c:20:9:
+         printf( "irbuf = %d source = %d tag = %d count = %d\n",
+         ^~~~~~
+overview.c: In function ‘main’:
+overview.c:17:9: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+         printf( "%d\n", irbuf );
+         ^~~~~~
+overview.c:17:9: warning: incompatible implicit declaration of built-in function ‘printf’
+overview.c:17:9: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+overview.c:2:1:
++#include <stdio.h>
+ 
+overview.c:17:9:
+         printf( "%d\n", irbuf );
+         ^~~~~~
+reduce-max.c: In function ‘main’:
+reduce-max.c:35:1: warning: implicit declaration of function ‘srandom’ [-Wimplicit-function-declaration]
+ srandom((unsigned int)(&sum)%100000);
+ ^~~~~~~
+reduce-max.c:35:9: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ srandom((unsigned int)(&sum)%100000);
+         ^
+reduce-max.c:38:19: warning: implicit declaration of function ‘random’ [-Wimplicit-function-declaration]
+   sum += (double)(random()%100);
+                   ^~~~~~
+reduce-maxloc.c: In function ‘main’:
+reduce-maxloc.c:39:1: warning: implicit declaration of function ‘srandom’ [-Wimplicit-function-declaration]
+ srandom((unsigned int)(&in[0]));
+ ^~~~~~~
+reduce-maxloc.c:39:9: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ srandom((unsigned int)(&in[0]));
+         ^
+reduce-maxloc.c:42:41: warning: implicit declaration of function ‘random’ [-Wimplicit-function-declaration]
+           in[i].val = ain[i] = (double)(random()%1000);
+                                         ^~~~~~
+reduce-minloc.c: In function ‘main’:
+reduce-minloc.c:41:3: warning: implicit declaration of function ‘srandom’ [-Wimplicit-function-declaration]
+   srandom(((unsigned int)(&in.val))*(rank+10));
+   ^~~~~~~
+reduce-minloc.c:41:12: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+   srandom(((unsigned int)(&in.val))*(rank+10));
+            ^
+reduce-minloc.c:44:23: warning: implicit declaration of function ‘random’ [-Wimplicit-function-declaration]
+     ain[i] = (double)(random()%1000+random()%1000);
+                       ^~~~~~
+reduce-user-complex.c: In function ‘main’:
+reduce-user-complex.c:65:17: warning: passing argument 1 of ‘MPI_Op_create’ from incompatible pointer type [-Wincompatible-pointer-types]
+  MPI_Op_create( myProd,1, &myOp );
+                 ^~~~~~
+In file included from reduce-user-complex.c:2:
+/usr/include/openmpi-loongarch64/mpi.h:1615:53: note: expected ‘void (*)(void *, void *, int *, struct ompi_datatype_t **)’ but argument is of type ‘void (*)(Complex *, Complex *, int *, struct ompi_datatype_t **)’ {aka ‘void (*)(struct <anonymous> *, struct <anonymous> *, int *, struct ompi_datatype_t **)’}
+ OMPI_DECLSPEC  int MPI_Op_create(MPI_User_function *function, int commute, MPI_Op *op);
+                                  ~~~~~~~~~~~~~~~~~~~^~~~~~~~
+reduce-user-matrix.c: In function ‘main’:
+reduce-user-matrix.c:59:17: warning: passing argument 1 of ‘MPI_Op_create’ from incompatible pointer type [-Wincompatible-pointer-types]
+  MPI_Op_create( myProd,1, &myOp );
+                 ^~~~~~
+In file included from reduce-user-matrix.c:2:
+/usr/include/openmpi-loongarch64/mpi.h:1615:53: note: expected ‘void (*)(void *, void *, int *, struct ompi_datatype_t **)’ but argument is of type ‘void (*)(double *, double *, int *, struct ompi_datatype_t **)’
+ OMPI_DECLSPEC  int MPI_Op_create(MPI_User_function *function, int commute, MPI_Op *op);
+                                  ~~~~~~~~~~~~~~~~~~~^~~~~~~~
+scatter.c: In function ‘main’:
+scatter.c:17:5: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     printf("My rank = %d  irecv = %d\n", rank, irecv);
+     ^~~~~~
+scatter.c:17:5: warning: incompatible implicit declaration of built-in function ‘printf’
+scatter.c:17:5: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+scatter.c:2:1:
++#include <stdio.h>
+ 
+scatter.c:17:5:
+     printf("My rank = %d  irecv = %d\n", rank, irecv);
+     ^~~~~~
+scatterv.c: In function ‘main’:
+scatterv.c:18:5: warning: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+     printf("My rank = %d  irecv[0] = %d irecv[1] = %d irecv[2] = %d \n",
+     ^~~~~~
+scatterv.c:18:5: warning: incompatible implicit declaration of built-in function ‘printf’
+scatterv.c:18:5: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+scatterv.c:2:1:
++#include <stdio.h>
+ 
+scatterv.c:18:5:
+     printf("My rank = %d  irecv[0] = %d irecv[1] = %d irecv[2] = %d \n",
+     ^~~~~~
+type_struct1.c: In function ‘main’:
+type_struct1.c:36:3: warning: ‘MPI_Address’ is deprecated: MPI_Address is superseded by MPI_Get_address in MPI-2.0 [-Wdeprecated-declarations]
+   MPI_Address( &particle, disp);
+   ^~~~~~~~~~~
+In file included from type_struct1.c:2:
+/usr/include/openmpi-loongarch64/mpi.h:1202:20: note: declared here
+ OMPI_DECLSPEC  int MPI_Address(void *location, MPI_Aint *address)
+                    ^~~~~~~~~~~
+type_struct1.c:37:3: warning: ‘MPI_Address’ is deprecated: MPI_Address is superseded by MPI_Get_address in MPI-2.0 [-Wdeprecated-declarations]
+   MPI_Address( &particle.d, disp+1);
+   ^~~~~~~~~~~
+In file included from type_struct1.c:2:
+/usr/include/openmpi-loongarch64/mpi.h:1202:20: note: declared here
+ OMPI_DECLSPEC  int MPI_Address(void *location, MPI_Aint *address)
+                    ^~~~~~~~~~~
+type_struct1.c:38:3: warning: ‘MPI_Address’ is deprecated: MPI_Address is superseded by MPI_Get_address in MPI-2.0 [-Wdeprecated-declarations]
+   MPI_Address( &particle.b, disp+2);
+   ^~~~~~~~~~~
+In file included from type_struct1.c:2:
+/usr/include/openmpi-loongarch64/mpi.h:1202:20: note: declared here
+ OMPI_DECLSPEC  int MPI_Address(void *location, MPI_Aint *address)
+                    ^~~~~~~~~~~
+type_struct1.c:50:3: warning: ‘MPI_Type_struct’ is deprecated: MPI_Type_struct is superseded by MPI_Type_create_struct in MPI-2.0 [-Wdeprecated-declarations]
+   MPI_Type_struct( 3, block, disp, type, &Particletype);
+   ^~~~~~~~~~~~~~~
+In file included from type_struct1.c:2:
+/usr/include/openmpi-loongarch64/mpi.h:1819:20: note: declared here
+ OMPI_DECLSPEC  int MPI_Type_struct(int count, int array_of_blocklengths[],
+                    ^~~~~~~~~~~~~~~
