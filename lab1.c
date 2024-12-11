@@ -1,10 +1,10 @@
-#include "mpi.h" /*MPI head file*/
-
+#include <mpi.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int main( int argc, char** argv )
-{
-    MPI_Init(&argc, &argv); /*initializing */
+int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
 
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -17,11 +17,8 @@ int main( int argc, char** argv )
 
     // 1.1 按节点分组
     // 每个进程的 hostname 作为键，创建一个新的通信器
-    int color;
-    MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &color);
-
     MPI_Comm node_comm;
-    MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &node_comm);
+    MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &node_comm);
 
     int node_rank, node_size;
     MPI_Comm_rank(node_comm, &node_rank);
@@ -51,6 +48,5 @@ int main( int argc, char** argv )
     // 清理通信器
     MPI_Comm_free(&node_comm);
     MPI_Finalize();
-
-
+    return 0;
 }
