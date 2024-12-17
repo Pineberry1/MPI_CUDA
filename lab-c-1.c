@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     int N = world_size;
     int local_sum = world_rank + 1;  // 每个进程的数据
 
-    // 蝶式全和的步骤
+    // 蝶式全和
     int step;
     for (step = 1; step < N; step *= 2) {
         int partner_rank = world_rank ^ step;  // 计算与当前进程通信的伙伴进程

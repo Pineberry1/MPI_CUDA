@@ -13,22 +13,20 @@ int main(int argc, char *argv[]) {
     int N = world_size;
     int local_sum = world_rank + 1;  // 每个进程的数据
 
-    // 蝶式全和的步骤
-    int step;
+    // 二叉树全和
+    int step, recv;
     for (step = 1; step < N; step *= 2) {
-        int partner_rank = world_rank ^ step;  // 计算与当前进程通信的伙伴进程
-
-        if (partner_rank < N) {
-            int received_sum;
-            MPI_Sendrecv(&local_sum, 1, MPI_INT, partner_rank, 0, 
-                         &received_sum, 1, MPI_INT, partner_rank, 0, 
-                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            // 更新本地的全和
-            local_sum += received_sum;
+        if(rank % (step << 1) == 0){
+            partner = rank + step;
+            if(partner < N){
+                MPI_Recv(&recv, 1, MPI_INT, partner, step, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
+            local_sum += recv;
+        }
+        if(rank - step > 0 && (rank - step) % (step << 1) == 0){
+            MPI_Send(&local_sum, 1, MPI_INT, rank - step, step, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
-
     // 输出每个进程最终的全和
     printf("Rank %d, Global sum: %d\n", world_rank, local_sum);
 
