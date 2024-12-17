@@ -2,51 +2,66 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-int main(int argc, char *argv[]) {
+/*
+int MyBcastMPI(void* data, int count, MPI_Datatype datatype, int root, MPI_Comm communicator)
+{
+    return 0;
+}
+*/
+int main(int argc, char *argv[])
+{
+    int id_procs, num_procs;
+    char seq[16];
+    int root = 0;
+    MPI_Group world_group, new_group;
     MPI_Init(&argc, &argv);
-
-    int world_size, world_rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-    // 获取每个进程的主机名
-    char hostname[MPI_MAX_PROCESSOR_NAME];
-    int name_len;
-    MPI_Get_processor_name(hostname, &name_len);
-
-    // 1.1 按节点分组
-    // 每个进程的 hostname 作为键，创建一个新的通信器
-    MPI_Comm node_comm;
-    //MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &node_comm);
-    MPI_Comm_split(MPI_COMM_WORLD, 0, world_rank, &node_comm);
-    int node_rank, node_size;
-    MPI_Comm_rank(node_comm, &node_rank);
-    MPI_Comm_size(node_comm, &node_size);
-
-    printf("World Rank %d: Node Rank %d on Host %s\n", world_rank, node_rank, hostname);
-
-    // 1.2 按节点分组后实现广播
-    int root = 0;  // 定义全局广播根进程
-    int message = 0;
-
-    if (world_rank == root) {
-        message = 42;  // Root 进程初始化消息
-        printf("Root process broadcasting message: %d\n", message);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &id_procs);
+    if (id_procs == root)
+    {
+        strcpy(seq, "hello,MPI!");
     }
+    MPI_Barrier(MPI_COMM_WORLD);
+    //1.1按节点分组
+    MPI_Comm split_comm_world;
+    MPI_Status status;
 
-    // 全局根进程将消息发送到每个节点的 0 号进程
-    if (node_rank == 0) {
-        MPI_Bcast(&message, 1, MPI_INT, root, MPI_COMM_WORLD);
+    int rank;
+    int size;
+
+    MPI_Comm_split(MPI_COMM_WORLD, id_procs % 4, id_procs, &split_comm_world);
+    MPI_Comm_rank(split_comm_world, &rank);
+    MPI_Comm_size(split_comm_world, &size);
+    printf("MPI Comm rank %d, node id %d, size %d. the new msg is %s\n", id_procs, rank);
+    //create new group H
+    MPI_Comm h_comm_world;
+    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+    int grpsize = num_procs / 2;
+    int zerolist[] = {0, 1, 2, 3};
+    int zerocnt = 0;
+
+    MPI_Group_incl(world_group, grpsize, zerolist, &new_group);
+    MPI_Comm_create(MPI_COMM_WORLD, new_group, &h_comm_world);
+    // message from root to 0 proc of MPI_COMM_WORLD
+    if (id_procs == root)
+    {
+        MPI_Send(&seq, 16, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
     }
+    else if (id_procs == 0)
+    {
+        MPI_Recv(&seq, 16, MPI_CHAR, root, 1, MPI_COMM_WORLD, &status);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    // Broadcast within the group H
+    if(h_comm_world != MPI_COMM_NULL)
+        MPI_Bcast(&seq, 16, MPI_CHAR, 0, h_comm_world);
+    MPI_Barrier(MPI_COMM_WORLD);
+    //Broadcasr within the group N
 
-    // 每个节点的 0 号进程在本地节点内广播消息
-    MPI_Bcast(&message, 1, MPI_INT, 0, node_comm);
+    MPI_Bcast(&seq, 16, MPI_CHAR, 0, split_comm_world);
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    printf("World Rank %d (Node Rank %d): Received message %d\n", world_rank, node_rank, message);
-
-    // 清理通信器
-    MPI_Comm_free(&node_comm);
+    printf("MPI Comm rank %d, original id %d, size %d. the new msg is %s\n", rank, id_procs, size, seq);
     MPI_Finalize();
     return 0;
 }
