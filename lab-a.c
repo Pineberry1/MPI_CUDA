@@ -34,18 +34,9 @@ int main(int argc, char *argv[])
     printf("MPI Comm rank %d, node id %d\n", id_procs, rank);
     MPI_Barrier(MPI_COMM_WORLD);
     //1.2root发送到每个节点的0号进程
-    //0号进程成一组
-    MPI_Group group_world, zero_group;
-    MPI_Comm_group(MPI_COMM_WORLD, &group_world);
-    if(rank == 0){
-        MPI_Group_incl(group_world, 1, &id_procs, &zero_group);
-    }
-    if(rank != 0 && root == id_procs){
-        MPI_Group_incl(group_world, 1, &id_procs, &zero_group);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
+    //0号进程与root成一组
     MPI_Comm zero_comm;
-    MPI_Comm_create(MPI_COMM_WORLD, zero_group, &zero_comm);
+    MPI_Comm_split(MPI_COMM_WORLD, (rank == 0 || root == id_procs), id_procs, &zero_comm);
     //root向0组发送
     strcpy(buf, "none");
     if(root == id_procs){
