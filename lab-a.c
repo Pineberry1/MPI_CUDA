@@ -43,13 +43,15 @@ int main(int argc, char *argv[])
         strcpy(buf, "wake");
     }
     MPI_Bcast(&buf, 16, MPI_CHAR, root, zero_comm);
-    //0号进程接收并广播
+    //0号进程广播
     MPI_Barrier(MPI_COMM_WORLD);
     
     MPI_Bcast(&buf, 16, MPI_CHAR, 0, split_comm_world);
     MPI_Barrier(MPI_COMM_WORLD);
 
     printf("MPI Comm rank %d, node id %d, buf: %s\n", id_procs, rank, buf);
+    MPI_Comm_free(&split_comm_world);
+    MPI_Comm_free(&zero_comm);
     MPI_Finalize();
     return 0;
 }

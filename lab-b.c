@@ -2,51 +2,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+int MPIAPI my_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm){
+    int world_size, world_rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    int sendtype_size = sizeof(sendtype);
+    for(int i = 0; i < world_size; ++ i){
+        MPI_Send(sendbuf + i * sendtype_size * sendcount, sendcount, sendtype, i, 0, comm);
+    }
+    int recvtype_size = sizeof(recvtype);
+    for(int i = 0; i < world_size; ++ i){
+        MPI_Recv(recvbuf + i * recvtype_size * recvcount, recvcount, recvtype, i, 0, comm, MPI_STATUS_IGNORE);
+    }
+}
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
 
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-    // 获取每个进程的主机名
-    char hostname[MPI_MAX_PROCESSOR_NAME];
-    int name_len;
-    MPI_Get_processor_name(hostname, &name_len);
-
-    // 1.1 按节点分组
-    // 每个进程的 hostname 作为键，创建一个新的通信器
-    MPI_Comm node_comm;
-    MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &node_comm);
-
-    int node_rank, node_size;
-    MPI_Comm_rank(node_comm, &node_rank);
-    MPI_Comm_size(node_comm, &node_size);
-
-    printf("World Rank %d: Node Rank %d on Host %s\n", world_rank, node_rank, hostname);
-
-    // 1.2 按节点分组后实现广播
-    int root = 0;  // 定义全局广播根进程
-    int message = 0;
-
-    if (world_rank == root) {
-        message = 42;  // Root 进程初始化消息
-        printf("Root process broadcasting message: %d\n", message);
+    int *sendbuf = (int*)malloc(sizeof(int) * world_size);
+    int *recvbuf = (int*)malloc(sizeof(int) * world_size);
+    for(int i = 0; i < world_size; ++ i){
+        sendbuf[i] = i;
+        recvbuf[i] = -1;
     }
-
-    // 全局根进程将消息发送到每个节点的 0 号进程
-    if (node_rank == 0) {
-        MPI_Bcast(&message, 1, MPI_INT, root, MPI_COMM_WORLD);
+    my_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
+    printf("cur_rank: %d, recvdata: ", rank);
+    for(int i = 0; i < world_size; ++ i){
+        printf("%d ", recvbuf[i]);
     }
-
-    // 每个节点的 0 号进程在本地节点内广播消息
-    MPI_Bcast(&message, 1, MPI_INT, 0, node_comm);
-
-    printf("World Rank %d (Node Rank %d): Received message %d\n", world_rank, node_rank, message);
-
-    // 清理通信器
-    MPI_Comm_free(&node_comm);
+    printf("\n");
+    free(sendbuf);
+    free(recvbuf);
     MPI_Finalize();
     return 0;
 }
