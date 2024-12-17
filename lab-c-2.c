@@ -6,7 +6,7 @@ int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
 
     int world_size, world_rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &N);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     // 假设 N 为 2 的幂次方
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
             local_sum += recv;
         }
         if(world_rank - step > 0 && (world_rank - step) % (step << 1) == 0){
-            MPI_Send(&local_sum, 1, MPI_INT, world_rank - step, step, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Send(&local_sum, 1, MPI_INT, world_rank - step, step, MPI_COMM_WORLD);
         }
     }
     // 输出每个进程最终的全和
