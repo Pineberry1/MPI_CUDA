@@ -1,0 +1,18 @@
+# Set the project name
+project(MPIProject)
+
+# Find MPI package
+find_package(MPI REQUIRED)
+
+add_executable(ProblemA lab-a.c)
+target_link_libraries(ProblemA MPI::MPI_CXX)
+
+add_executable(ProblemB lab-b.c)
+target_link_libraries(ProblemB MPI::MPI_CXX)
+
+add_executable(ProblemC lab-c-1.c)
+target_link_libraries(ProblemC MPI::MPI_CXX)
+
+add_executable(ProblemD lab-c-2.c)
+target_link_libraries(ProblemD MPI::MPI_CXX)
+

@@ -15,15 +15,17 @@ int My_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
     MPI_Type_size(recvtype, &recvtype_size);  
 
     for (int i = 0; i < world_size; ++i) {
-        MPI_Send(sendbuf + i * sendtype_size * sendcount, sendcount, sendtype, 
-                 i, 0, comm);
+        if(i != world_rank){
+            MPI_Send(sendbuf + i * sendtype_size * sendcount, sendcount, sendtype, 
+                    i, 0, comm);
+            MPI_Recv(recvbuf + i * recvtype_size * recvcount, recvcount, recvtype, 
+                    i, 0, comm, MPI_STATUS_IGNORE);
+        }
+        else{
+            memcpy(recvbuf + i * recvtype_size * recvcount, sendbuf + i * sendtype_size * sendcount, sendtype_size * sendcount);
+        }
     }
 
-    MPI_Barrier(comm);
-    for (int i = 0; i < world_size; ++i) {
-        MPI_Recv(recvbuf + i * recvtype_size * recvcount, recvcount, recvtype, 
-                 i, 0, comm, MPI_STATUS_IGNORE);
-    }
 
     return 0;
 }
