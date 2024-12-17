@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-int MPIAPI my_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm){
+int my_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm){
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
         recvbuf[i] = -1;
     }
     my_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
-    printf("cur_rank: %d, recvdata: ", rank);
+    printf("cur_rank: %d, recvdata: ", world_rank);
     for(int i = 0; i < world_size; ++ i){
         printf("%d ", recvbuf[i]);
     }
