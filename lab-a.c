@@ -38,14 +38,14 @@ int main(int argc, char *argv[])
         char message[16] = "signal";
         for(int i = 0; i < num_procs; ++ i){
             if(rank == 0){
-                MPI_SEND(&message, 16, MPI_CHAR, i, 0, MPI_COMM_WORLD);
+                MPI_Send(&message, 16, MPI_CHAR, i, 0, MPI_COMM_WORLD);
             }
         }
     }
     //0号进程接收并广播
     MPI_Barrier(MPI_COMM_WORLD);
     if(rank == 0){
-        MPI_RECV(&buf, 16, MPI_CHAR, root, 0, MPI_COMM_WORLD);
+        MPI_Recv(&buf, 16, MPI_CHAR, root, 0, MPI_COMM_WORLD);
     }
     MPI_Bcast(&buf, 16, MPI_CHAR, 0, split_comm_world);
     MPI_Barrier(MPI_COMM_WORLD);
