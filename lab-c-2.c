@@ -5,9 +5,9 @@
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
 
-    int world_size, world_rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    int N, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &N);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     // 假设 N 为 2 的幂次方
     int N = world_size;
@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     int step, recv;
     for (step = 1; step < N; step *= 2) {
         if(rank % (step << 1) == 0){
-            partner = rank + step;
+            int partner = rank + step;
             if(partner < N){
                 MPI_Recv(&recv, 1, MPI_INT, partner, step, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
