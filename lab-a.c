@@ -47,9 +47,9 @@ int main(int argc, char *argv[])
     MPI_Comm zero_comm;
     MPI_Comm_create(MPI_COMM_WORLD, zero_group, &zero_comm);
     //root向0组发送
-    strcpy(buf, "none", 5);
+    strcpy(buf, "none");
     if(root == id_procs){
-        strcpy(buf, "wake", 5);
+        strcpy(buf, "wake");
     }
     MPI_Bcast(&buf, 16, MPI_CHAR, root, zero_comm);
     //0号进程接收并广播
