@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
             }
             local_sum += recv;
         }
-        if(world_rank - step > 0 && (world_rank - step) % (step << 1) == 0){
+        if(world_rank - step >= 0 && (world_rank - step) % (step << 1) == 0){
             MPI_Send(&local_sum, 1, MPI_INT, world_rank - step, step, MPI_COMM_WORLD);
         }
     }
