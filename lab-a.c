@@ -34,21 +34,27 @@ int main(int argc, char *argv[])
     printf("MPI Comm rank %d, node id %d\n", id_procs, rank);
     MPI_Barrier(MPI_COMM_WORLD);
     //1.2root发送到每个节点的0号进程
-    if(id_procs == root){
-        char message[16] = "signal";
-        for(int i = 0; i < num_procs; ++ i){
-            if(rank == 0){
-                MPI_Send(&message, 16, MPI_CHAR, i, 0, MPI_COMM_WORLD);
-                printf("send a message to %d", i);
-            }
-        }
+    //0号进程成一组
+    MPI_Group group_world, zero_group;
+    MPI_Comm_group(MPI_COMM_WORLD, &group_world);
+    if(rank == 0){
+        MPI_Group_incl(group_world, 1, &id_procs, &zero_group);
     }
+    if(rank != 0 && root == id_procs){
+        MPI_Group_incl(group_world, 1, &id_procs, &zero_group);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Comm zero_comm;
+    MPI_Comm_create(MPI_COMM_WORLD, zero_group, &zero_comm);
+    //root向0组发送
+    buf = "none";
+    if(root == id_procs){
+        buf = "wake";
+    }
+    MPI_Bcast(&buf, 16, MPI_CHAR, root, zero_comm);
     //0号进程接收并广播
     MPI_Barrier(MPI_COMM_WORLD);
-    if(rank == 0){
-        MPI_Recv(&buf, 16, MPI_CHAR, root, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        printf("recv a message from %d", root);
-    }
+    
     MPI_Bcast(&buf, 16, MPI_CHAR, 0, split_comm_world);
     MPI_Barrier(MPI_COMM_WORLD);
 
