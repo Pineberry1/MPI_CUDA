@@ -10,6 +10,7 @@ int my_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void* recvb
     for(int i = 0; i < world_size; ++ i){
         MPI_Send(sendbuf + i * sendtype_size * sendcount, sendcount, sendtype, i, 0, comm);
     }
+    MPI_Barrier(comm);
     int recvtype_size = sizeof(recvtype);
     for(int i = 0; i < world_size; ++ i){
         MPI_Recv(recvbuf + i * recvtype_size * recvcount, recvcount, recvtype, i, 0, comm, MPI_STATUS_IGNORE);
