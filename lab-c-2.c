@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
             MPI_Send(&local_sum, 1, MPI_INT, world_rank - step, step, MPI_COMM_WORLD);
         }
     }
-    // 输出每个进程最终的全和
+    
     printf("world_rank %d, Global sum: %d\n", world_rank, local_sum);
 
     MPI_Finalize();
