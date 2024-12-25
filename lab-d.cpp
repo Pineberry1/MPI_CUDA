@@ -12,7 +12,7 @@ private:
 public:
     matrix():row(0), col(0), mat(nullptr){}
     matrix(int r, int c): row(r), col(c){
-        mat = new (type)[r*c];
+        mat = new type[r*c];
     }
     ~matrix(){
         delete[] mat;
@@ -161,7 +161,7 @@ matrix<type> FOX(matrix<type>&A, matrix<type>& B){
 const int mat_N = 16;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-    matrix<int> A, B;
+    matrix<int>* A, B;
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -189,18 +189,18 @@ int main(int argc, char *argv[]) {
             for(int j = 0; j < p; ++ j){
                 if(i == 0 && j == 0)continue;
                 int len;
-                a = A.split_copy(i * n, j * n, n, n);
-                b = B.split_copy(i * n, j * n, n, n);
+                a = A->split_copy(i * n, j * n, n, n);
+                b = B->split_copy(i * n, j * n, n, n);
                 len = a.serialize(bufa);
                 MPI_Send(&len, 1, MPI_INT, i * p + j, 'a', MPI_COMM_WORLD);
-                MPI_Send(bufa, len, MPI_CHAR, i * sp + j, 'a'+ 2, MPI_COMM_WORLD);
+                MPI_Send(bufa, len, MPI_CHAR, i * p + j, 'a'+ 2, MPI_COMM_WORLD);
                 len = b.serialize(bufb);
                 MPI_Send(&len, 1, MPI_INT, i * p + j, 'b', MPI_COMM_WORLD);
-                MPI_Send(bufb, len, MPI_CHAR, i * sp + j, 'b'+ 2, MPI_COMM_WORLD);
+                MPI_Send(bufb, len, MPI_CHAR, i * p + j, 'b'+ 2, MPI_COMM_WORLD);
             }
         }
-        a = A.split_copy(0, 0, n, n);
-        b = B.split_copy(0, 0, n, n);
+        a = A->split_copy(0, 0, n, n);
+        b = B->split_copy(0, 0, n, n);
     }
     else{
         int len;
