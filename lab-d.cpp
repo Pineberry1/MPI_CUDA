@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
     double finish_fox = MPI_Wtime();
     delete []bufa;
     delete []bufb;
-    //#define DEBUG
+    #define DEBUG
     if(world_rank == 0){
         #ifdef DEBUG
         cout << "A:" << endl;
