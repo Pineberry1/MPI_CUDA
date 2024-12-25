@@ -6,10 +6,9 @@
 using namespace std;
 template<class type>
 class matrix{
-private:
+public:
     int row, col;
     type* mat;
-public:
     matrix():row(0), col(0), mat(nullptr){}
     matrix(int r, int c): row(r), col(c){
         mat = new type[r*c];
@@ -38,14 +37,14 @@ public:
     static matrix<type> unserialize(char* stream){//unknown type
         int r = *(int*)stream;
         int c = *(((int*)stream) + 1);
-        matrix<type> res = new matrix(r, c);//alloc
+        matrix<type>* res = new matrix<type>(r, c);//alloc
         type* data = (type*)(((int*)stream) + 2);
         for(int i = 0; i < r; ++ i){
             for(int j = 0; j < c; ++ j){
                 res[i][j] = data[i*c + j];
             }
         }
-        return res;
+        return *res;
     }
     type* operator [](int x){
         if(x >= 0 && x < row){
@@ -68,7 +67,7 @@ public:
         matrix* res = new matrix(tmp_row, tmp_col);//alloc
         for(int i = 0; i < tmp_row; ++ i){
             for(int j = 0; j < tmp_col; ++ j){
-                res[i][j] = this[x + i][y + j];
+                res[i][j] = (*this)[x + i][y + j];
             }
         }
         return *res;
@@ -80,7 +79,7 @@ public:
         for(int i = 0; i < row; ++ i){
             for(int j = 0; j < m.col; ++ j){
                 for(int k = 0; k < m.row; ++ k){
-                    res[i][j] += this[i][k] * m[k][j];
+                    res[i][j] += (*this)[i][k] * m[k][j];
                 }
             }
         }
@@ -103,7 +102,7 @@ matrix<type> FOX(matrix<type>&A, matrix<type>& B){
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     int p = (int)sqrt(size);
-    assert(p * p = size);
+    assert(p * p == size);
     int n = A.row;
     char* recv_bufa = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_a
     char* recv_bufb = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_b
@@ -161,7 +160,7 @@ matrix<type> FOX(matrix<type>&A, matrix<type>& B){
 const int mat_N = 16;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-    matrix<int>* A, B;
+    matrix<int>* A, *B;
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -170,8 +169,8 @@ int main(int argc, char *argv[]) {
         B = new matrix<int>(mat_N, mat_N);
         for(int i = 0; i < mat_N; ++ i){
             for(int j = 0; j < mat_N; ++ j){
-                A[i][j] = 1;
-                B[i][j] = 1;
+                (*A)[i][j] = 1;
+                (*B)[i][j] = 1;
             }
         }
     }
