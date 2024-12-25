@@ -7,7 +7,7 @@
 // mpicc -o fox fox.c -lm   //将fox.c编译为可执行文件fox
 // mpirun -np 4 ./fox  //选择线程数为4，并执行fox文件
 
-const int N = 32;//矩阵A, B的维度
+const int N = 512;//矩阵A, B的维度
 
 void Print_Mat(int *A, int n){//打印矩阵
     for(int i = 0; i < n; i++){
