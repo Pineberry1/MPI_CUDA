@@ -225,8 +225,9 @@ int main(int argc, char *argv[]) {
         MPI_Recv(bufb, len, MPI_CHAR, 0, 'b' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         b = matrix<int>::unserialize(bufb);
     }
+    a.print();
+    b.print();
     c = FOX(a, b);
-    c.print();
     if(world_rank != 0){
         int len;
         len = c.serialize(bufa);
