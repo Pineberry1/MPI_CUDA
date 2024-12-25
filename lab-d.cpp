@@ -170,7 +170,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []send_buf;
     return *c;
 }
-const int mat_N = 512;
+const int mat_N = 128;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     matrix<int>* A, *B, *C;
