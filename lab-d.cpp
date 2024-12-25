@@ -236,6 +236,7 @@ int main(int argc, char *argv[]) {
                     MPI_Recv(&len, 1, MPI_INT, 0, 'c' + 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     MPI_Recv(bufb, len, MPI_CHAR, 0, 'c' + 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     c = matrix<int>::unserialize(bufb);
+                    cout << "123" << endl;
                 }
                 for(int ii = 0; ii < n; ++ ii){
                     for(int jj = 0; jj < n; ++ jj){
@@ -255,8 +256,8 @@ int main(int argc, char *argv[]) {
         B->print();
         cout << "A*B:" << endl;
         C->print();
+        printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
     }
-    printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
     MPI_Finalize();
     return 0;
 }
