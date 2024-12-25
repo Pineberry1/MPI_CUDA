@@ -1,284 +1,233 @@
 #include <mpi.h>
 #include <stdio.h>
-#include <cmath>
 #include <stdlib.h>
-#include <cassert>
-using namespace std;
-template<class type>
-class matrix{
-public:
-    int row, col;
-    type* mat;
-    matrix():row(0), col(0), mat(nullptr){}
-    matrix(int r, int c): row(r), col(c){
-        mat = new type[r*c];
+#include <string.h>
+#include <time.h>
+
+// mpicc -o fox fox.c -lm   //将fox.c编译为可执行文件fox
+// mpirun -np 4 ./fox  //选择线程数为4，并执行fox文件
+
+const int N = 32;//矩阵A, B的维度
+
+void Print_Mat(int *A, int n){//打印矩阵
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            printf("%d  ",A[i * n + j]);
+        }
+        printf("\n");
     }
-    ~matrix(){
-        delete[] mat;
-        row = 0, col = 0;
-    }
-    void print(){
-        for(int i = 0; i < row; ++ i){
-            for(int j = 0; j < col; ++ j){
-                cout << mat[i*col + j] << " ";
-            }
-            cout << endl;
+    printf("\n");
+}
+
+int int_sqrt(int p){//计算p的根号，返回整数结果
+    for(int i = 1; i <= p; i++){
+        if(i * i == p){
+            return i;
         }
     }
-    int serialize(char* res){
-        *(int*)res = row;
-        *(((int*)res) + 1) = col;
-        type* data = (type*)(((int*)res) + 2);
-        for(int i = 0; i < row*col; ++ i){
-            data[i] = mat[i];
+    return -1;
+}
+
+//获得A的第i,j个n*n方块,储存在a中
+void Get_Block(int *A, int *a, int i, int j, int n){
+    for(int k = 0; k < n; k++){
+        for(int l = 0; l < n; l++){
+            a[k * n + l] = A[i * n * N + j * n + k * N + l];
         }
-        return sizeof(int) * 2 + sizeof(type) * row * col;
     }
-    static matrix<type>& unserialize(char* stream){//unknown type
-        int r = *(int*)stream;
-        int c = *(((int*)stream) + 1);
-        matrix<type>* res = new matrix<type>(r, c);//alloc
-        type* data = (type*)(((int*)stream) + 2);
-        for(int i = 0; i < r; ++ i){
-            for(int j = 0; j < c; ++ j){
-                (*res)[i][j] = data[i*c + j];
-            }
-        }
-        return *res;
-    }
-    type* operator [](int x){
-        if(x >= 0 && x < row){
-            return (mat + x*col);
-        }
-        else
-            assert(0);
-    }
-        const type* operator [](int x) const{
-        if(x >= 0 && x < row){
-            return (mat + x*col);
-        }
-        else
-            assert(0);
-    }
-    matrix<type>& operator = (const matrix<type>& m){//shallow copy
-        row = m.row;
-        col = m.col;
-        mat = m.mat;
-    }
-    matrix(const matrix<type>& m): row(m.row), col(m.col){
-        row = m.row;
-        col = m.col;
-        mat = m.mat;
-    }
-    matrix<type>& split_copy(int x, int y, int tmp_row, int tmp_col){
-        matrix* res = new matrix(tmp_row, tmp_col);//alloc
-        for(int i = 0; i < tmp_row; ++ i){
-            for(int j = 0; j < tmp_col; ++ j){
-                (*res)[i][j] = (*this)[x + i][y + j];
+}
+
+//矩阵相乘的串行算法，计算矩阵乘法 a*b，计算结果储存在c中
+void Multi_Mat(int *a, int *b, int *c, int n){
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            for(int k = 0; k < n; k++){
+                c[i * n + j] += a[i * n + k] * b[k * n + j];
             }
         }
-        return *res;
     }
-    matrix<type>& operator *(const matrix& m){
-        matrix<type>* res = new matrix(row, m.col);//alloc
-        memset(res->mat, 0, sizeof(type) * row * m.col);
-        assert(col == m.row);
-        for(int i = 0; i < row; ++ i){
-            for(int j = 0; j < m.col; ++ j){
-                for(int k = 0; k < m.row; ++ k){
-                    (*res)[i][j] += (*this)[i][k] * m[k][j];
-                }
-            }
-        }
-        return *res;//maybe leak
+}
+
+//fox矩阵乘法
+void Fox(int *a, int *b, int *c, int sp, int n, int myrank){
+    int *temp_a = malloc(n * n * sizeof(int));//用来接收a
+    int *temp_b = malloc(n * n * sizeof(int));//用来接收b
+
+    //将处理器记为P_ij
+    int j = myrank % sp;
+    int i = (myrank - j) / sp;
+
+    //对方块c初始化
+    for(int k = 0; k < n * n; k++){
+        c[k]=0;
     }
-    matrix& operator +=(const matrix<type>& m){
-        assert(row == m.row && col == m.col);
-        for(int i = 0; i < row; ++ i){
-            for(int j = 0; j < col; ++ j){
-                mat[i*col + j] += m[i][j];
-            }
-        }
-        return *this;
-    }
-    void clear(){
-        memset(mat, 0, sizeof(type) * row * col);
-    }
-};
-const int MAX_ROW = 1e3 + 5;
-template<class type>
-matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
-    int rank, size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    int p = (int)sqrt(size);
-    assert(p * p == size);
-    int n = A.row;
-    matrix<type>* c = new matrix<type>(n, n);
-    c->clear();
-    char* recv_bufa = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_a
-    char* recv_bufb = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_b
-    char* send_buf = new char[MAX_ROW * MAX_ROW];
-    int j = rank % p;
-    int i = (rank - j) / p;
     int senddest = 0, recvdest = 0;
-    for(int round = 0; round < p; ++ round){
-        if(i == (j + round) % p){
-            for(int k = 0; k < p; ++ k){
-                int len = A.serialize(send_buf);
+    //fox循环
+    for(int round = 0; round < sp; round++){
+        if(i == (j + round) % sp){//选出本轮在i行广播的A_ij
+            for(int k = 0; k < sp; k++){
                 if(k != j){
-                    MPI_Send(&len, 1, MPI_INT, i * p + k, (round + 1) * 2, MPI_COMM_WORLD);
-                    MPI_Send(send_buf, len, MPI_CHAR, i * p + k, (round + 1) * 2 + 1, MPI_COMM_WORLD);
+                    MPI_Send(a, n * n, MPI_INT, i * sp + k, (round + 1) * sp, MPI_COMM_WORLD);
                 }
                 else{
-                    for(int l = 0; l < len; ++ l){
-                        recv_bufa[l] = send_buf[l];
+                    for(int l = 0; l < n * n; l++){
+                        temp_a[l]=a[l];
                     }
                 }
             }
         }
         else{
             if(i - round < 0){
-                recvdest = i * p + i - round  + p;
+                recvdest = i * sp + i - round + sp;
+            }else{
+                recvdest = i * sp + i -round;
             }
-            else{
-                recvdest = i * p + i - round;
-            }
-            int len;
-            MPI_Recv(&len, 1, MPI_INT, recvdest, (round + 1) * 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(recv_bufa, len, MPI_CHAR, recvdest, (round + 1) * 2 + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(temp_a, n * n, MPI_INT, recvdest, (round + 1) * sp, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-        matrix<type>& a = matrix<type>::unserialize(recv_bufa);
-        (*c) += a*B;
-        if(round == p - 1)break;
-        senddest = i > 0 ? i - 1: i - 1 + p;
-        recvdest = i < p - 1 ? i + 1: i + 1 - p;
-        int len = B.serialize(send_buf);
-        MPI_Send(&len, 1, MPI_INT, senddest * p + j, 0, MPI_COMM_WORLD);
-        MPI_Send(send_buf, len, MPI_CHAR, senddest * p + j, 1, MPI_COMM_WORLD);
-        MPI_Recv(&len, 1, MPI_INT, recvdest * p + j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(recv_bufb, len, MPI_CHAR, recvdest * p + j, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        matrix<type>& tmp_b = matrix<type>::unserialize(recv_bufb);
-        for(int i = 0; i < n; ++ i){
-            for(int j = 0; j < n; ++ j){
-                B[i][j] = tmp_b[i][j];
-            }
+
+        //做矩阵乘法
+        Multi_Mat(temp_a, b, c, n);
+
+        if(round == sp - 1)break;
+        
+        //将块B_ij上移
+        senddest = i > 0 ? i - 1:i - 1 + sp;
+        recvdest = i < sp - 1 ? i + 1:i + 1 - sp;
+        MPI_Sendrecv(b, n * n, MPI_INT, senddest * sp + j, 0, 
+                    temp_b, n * n, MPI_INT, recvdest * sp + j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        for(int i = 0; i < n * n; i++){
+            b[i] = temp_b[i];
         }
     }
-    delete []recv_bufa;
-    delete []recv_bufb;
-    delete []send_buf;
-    return *c;
 }
-const int mat_N = 32;
-int main(int argc, char *argv[]) {
+
+//将C的第i,j个n*n方块用c赋值
+void Copy_Block(int *c, int *C, int i, int j, int n){
+    for(int k = 0; k < n; k++){
+        for(int l = 0; l < n; l++){
+            C[i * n * N + j * n + k * N + l] = c[k * n + l];
+        }
+    }
+}
+
+// processor0 接收其他处理器的计算结果
+void Recv_Block(int *c, int *C, int sp, int n){
+    for(int i = 0; i < sp; i++){
+        for(int j = 0; j < sp; j++){
+            if(i + j != 0) 
+                MPI_Recv(c, n * n, MPI_INT, i * sp + j, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            Copy_Block(c, C, i, j, n);
+        }
+    }
+}
+
+int main(int argc, char **argv)
+{
     MPI_Init(&argc, &argv);
-    matrix<int>* A, *B, *C;
-    int world_size, world_rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    if(world_rank == 0){
-        A = new matrix<int>(mat_N, mat_N);
-        B = new matrix<int>(mat_N, mat_N);
-        C = new matrix<int>(mat_N, mat_N);
-        for(int i = 0; i < mat_N; ++ i){
-            for(int j = 0; j < mat_N; ++ j){
-                (*A)[i][j] = 1;
-                (*B)[i][j] = 1;
-            }
+
+    int p, myrank;
+	MPI_Comm_size(MPI_COMM_WORLD, &p);
+	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+    int *A, *B, *C;
+    if(myrank == 0){
+        // 由processor0 随机生成N*N矩阵A、B，和空矩阵C
+        srand(time(NULL));
+        A = (int *)malloc(N * N * sizeof(int));
+        B = (int *)malloc(N * N * sizeof(int));
+        C = (int *)malloc(N * N * sizeof(int));
+        for(int i = 0; i < N * N; i++){
+            A[i] = rand() % 10;
+            B[i] = rand() % 10;
         }
+        //Print_Mat(A, N);
     }
-    int p = (int)sqrt(world_size);
-    assert(p * p == world_size);
-    assert(mat_N % p == 0);
-    int n = mat_N / p;
-    matrix<int> tmpp;
-    matrix<int>&a = tmpp, &b = tmpp, &c = tmpp;
-    MPI_Barrier(MPI_COMM_WORLD);//start
+
+    int sp = int_sqrt(p);
+    if(sp == -1 && myrank == 0){
+        printf("sp = %d, 处理器数不是完全平方数\n",sp);
+        return(0);
+    }
+    int n = N / sp;//方块的维度
+    if(sp * n != N && myrank == 0){
+        printf("处理器数不能均分矩阵\n");
+        return(0);
+    }
+    //printf("n = %d\n", n);
+    int *a = malloc(n * n * sizeof(int));//a, b, c储存方块
+    int *b = malloc(n * n * sizeof(int));
+    int *c = malloc(n * n * sizeof(int));
+
+    //计时开始
+    MPI_Barrier(MPI_COMM_WORLD);
     double start_fox = MPI_Wtime();
-    char* bufa = new char[MAX_ROW * MAX_ROW];
-    char* bufb = new char[MAX_ROW * MAX_ROW];
-    if(world_rank == 0){
-        for(int i = 0; i < p; ++ i){
-            for(int j = 0; j < p; ++ j){
-                if(i == 0 && j == 0)continue;
-                int len;
-                a = A->split_copy(i * n, j * n, n, n);
-                b = B->split_copy(i * n, j * n, n, n);
-                len = a.serialize(bufa);
-                MPI_Send(&len, 1, MPI_INT, i * p + j, 'a', MPI_COMM_WORLD);
-                MPI_Send(bufa, len, MPI_CHAR, i * p + j, 'a'+ 2, MPI_COMM_WORLD);
-                len = b.serialize(bufb);
-                MPI_Send(&len, 1, MPI_INT, i * p + j, 'b', MPI_COMM_WORLD);
-                MPI_Send(bufb, len, MPI_CHAR, i * p + j, 'b'+ 2, MPI_COMM_WORLD);
+
+    if(myrank == 0){
+        //由processor0把A，B的n*n方块发送给另外sp*sp-1个处理器
+        for(int i = 0; i < sp; i++){
+            for(int j = 0; j < sp; j++){
+                if(i == 0 && j == 0) continue;
+                Get_Block(A, a, i, j, n);
+                Get_Block(B, b, i, j, n);
+                //Print_Mat(a, n);
+                MPI_Send(a, n * n, MPI_INT, i * sp + j, 'a', MPI_COMM_WORLD);
+                MPI_Send(b, n * n, MPI_INT, i * sp + j, 'b', MPI_COMM_WORLD);
             }
         }
-        a = A->split_copy(0, 0, n, n);
-        b = B->split_copy(0, 0, n, n);
+        // processor0 储存方块A_00, B_00
+        Get_Block(A, a, 0, 0, n);
+        Get_Block(B, b, 0, 0, n);
     }
-    else{
-        int len;
-        MPI_Recv(&len, 1, MPI_INT, 0, 'a', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(bufa, len, MPI_CHAR, 0, 'a' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        a = matrix<int>::unserialize(bufa);
-        MPI_Recv(&len, 1, MPI_INT, 0, 'b', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(bufb, len, MPI_CHAR, 0, 'b' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        b = matrix<int>::unserialize(bufb);
+    else{// 其他处理器接收方块A_ij, B_ij
+        MPI_Recv(a, n * n, MPI_INT, 0, 'a', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(b, n * n, MPI_INT, 0, 'b', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    c = FOX(a, b);
-    if(world_rank != 0){
-        int len;
-        len = c.serialize(bufa);
-        MPI_Send(&len, 1, MPI_INT, 0, 'c' + 3, MPI_COMM_WORLD);
-        MPI_Send(bufa, len, MPI_CHAR, 0, 'c'+ 4, MPI_COMM_WORLD);
+    
+    // Fox矩阵乘法
+    Fox(a, b, c, sp, n, myrank);
+
+    if(myrank != 0){//其他处理器向 processor0 发送计算结果
+        MPI_Send(c, n * n, MPI_INT, 0, 3, MPI_COMM_WORLD);
     }
-    else{
-        for(int i = 0; i < p; ++ i){
-            for(int j = 0; j < p; ++ j){
-                if(i + j != 0){
-                    int len;
-                    MPI_Recv(&len, 1, MPI_INT, i*p + j, 'c' + 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    MPI_Recv(bufb, len, MPI_CHAR, i*p + j, 'c' + 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    c = matrix<int>::unserialize(bufb);
-                }
-                for(int ii = 0; ii < n; ++ ii){
-                    for(int jj = 0; jj < n; ++ jj){
-                        (*C)[i*n + ii][j*n + jj] = c[ii][jj];
-                    }
-                }
-            }
-        }
+    else{//processor0 接收方块结果，并赋值给矩阵C
+        Recv_Block(c, C, sp, n);
     }
+
+    //计时结束
     double finish_fox = MPI_Wtime();
-    delete []bufa;
-    delete []bufb;
-    #define DEBUG
-    if(world_rank == 0){
-        #ifdef DEBUG
-        cout << "A:" << endl;
-        A->print();
-        cout << "B:" << endl;
-        B->print();
-        cout << "A*B:" << endl;
-        C->print();
+
+    // 由 processor0 打印计算结果
+    if (myrank == 0)
+    {   
+        // 检验fox乘法结果正确性
+        #if 0
+        printf("Matrix A = \n");Print_Mat(A, N);
+        printf("Matrix B = \n");Print_Mat(B, N);
+        printf("fox计算结果 C = \n");Print_Mat(C, N);
         #endif
         printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
-                //串行乘法
+        
+        //归零
+        for(int i=0; i < N * N; i++){
+            C[i]=0;
+        }
+
+        //串行乘法
         double start =  MPI_Wtime();
-        *C = (*A)*(*B);
+        //Multi_Mat(A, B, C, N);
         double finish = MPI_Wtime();
 
-        #ifdef DEBUG
-        printf("串行计算结果 A*B : \n");
-        C->print();
+        #if 0
+        printf("串行计算结果 C = \n");Print_Mat(C, N);
         #endif
         printf("串行乘法耗时: %f\n", finish - start);
 
         //计算加速比
         double rate = (finish - start)/(finish_fox - start_fox);
-        printf("并行%d核加速比为: %f\n", world_size, rate);
-
+        printf("并行加速比为: %f\n", rate);
     }
+
     MPI_Finalize();
     return 0;
 }
+
