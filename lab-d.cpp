@@ -164,6 +164,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []recv_bufa;
     delete []recv_bufb;
     delete []send_buf;
+    c -> print();
     return *c;
 }
 const int mat_N = 4;
