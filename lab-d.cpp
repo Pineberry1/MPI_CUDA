@@ -265,7 +265,7 @@ int main(int argc, char *argv[]) {
         printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
                 //串行乘法
         double start =  MPI_Wtime();
-        *C = A*B;
+        *C = (*A)*(*B);
         double finish = MPI_Wtime();
 
         #ifdef DEBUG
