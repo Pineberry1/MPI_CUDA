@@ -30,15 +30,15 @@ public:
         *(int*)res = row;
         *(((int*)res) + 1) = col;
         type* data = (type*)(((int*)res) + 2);
-        for(int i = 0; i < r*c; ++ i){
+        for(int i = 0; i < row*col; ++ i){
             data[i] = mat[i];
         }
-        return sizeof(int) * 2 + sizeof(type) * r * c;
+        return sizeof(int) * 2 + sizeof(type) * row * col;
     }
-    static matrix unserialize(char* stream){//unknown type
+    static matrix<type> unserialize(char* stream){//unknown type
         int r = *(int*)stream;
         int c = *(((int*)stream) + 1);
-        matrix res = new matrix(r, c);//alloc
+        matrix<type> res = new matrix(r, c);//alloc
         type* data = (type*)(((int*)stream) + 2);
         for(int i = 0; i < r; ++ i){
             for(int j = 0; j < c; ++ j){
@@ -47,14 +47,14 @@ public:
         }
         return res;
     }
-    type& operator [][](int x, int y){
-        if(x >= 0 && x < row && y >= 0 && y < col){
-            return *(mat + x * col + y);
+    type* operator [](int x){
+        if(x >= 0 && x < row){
+            return (mat + x*col);
         }
         else
-            throw "size overflow";
+            assert(0);
     }
-    matrix& operator = (const matrix<type>& m){//shallow copy
+    matrix<type>& operator = (const matrix<type>& m){//shallow copy
         row = m.row;
         col = m.col;
         mat = m.mat;
@@ -74,12 +74,13 @@ public:
         return *res;
     }
     matrix<type> operator *(const matrix& m){
-        matrix<type>* res = new matrix(x.row, y.col);//alloc
-        memset(res.mat, 0, sizeof(type) * x.row * y.col);
+        matrix<type>* res = new matrix(row, m.col);//alloc
+        memset(res.mat, 0, sizeof(type) * row * m.col);
+        assert(col == m.row);
         for(int i = 0; i < row; ++ i){
-            for(int j = 0; j < col; ++ j){
-                for(int k = 0; k < x.row; ++ k){
-                    res[i][j] += x[i][k] * y[k][j];
+            for(int j = 0; j < m.col; ++ j){
+                for(int k = 0; k < m.row; ++ k){
+                    res[i][j] += this[i][k] * m[k][j];
                 }
             }
         }
@@ -87,7 +88,12 @@ public:
     }
     matrix& operator +=(const matrix<type>& m){
         assert(row == m.row && col == m.col);
-        
+        for(int i = 0; i < row; ++ i){
+            for(int j = 0; j < col; ++ j){
+                mat[i*col + j] += m[i][j];
+            }
+        }
+        return *this;
     }
 };
 const int MAX_ROW = 1e3 + 5;
@@ -129,7 +135,7 @@ matrix<type> FOX(matrix<type>&A, matrix<type>& B){
             }
             int len;
             MPI_Recv(&len, 1, MPI_INT, recvdest, (round + 1) * 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(recv_bufa, len, MPI_CHAR, i * p + k, (round + 1) * 2 + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(recv_bufa, len, MPI_CHAR, recvdest, (round + 1) * 2 + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         matrix<type> a = matrix<type>::unserialize(recv_bufa);
         matrix<type> c = a*B;
@@ -138,7 +144,7 @@ matrix<type> FOX(matrix<type>&A, matrix<type>& B){
         recvdest = i < p - 1 ? i + 1: i + 1 - p;
         int len = B.serialize(send_buf);
         MPI_Send(&len, 1, MPI_INT, senddest * p + j, 0, MPI_COMM_WORLD);
-        MPI_Send(send_buf, len, MPI_CHAR, senddest * sp + j, 1, MPI_COMM_WORLD);
+        MPI_Send(send_buf, len, MPI_CHAR, senddest * p + j, 1, MPI_COMM_WORLD);
         MPI_Recv(&len, 1, MPI_INT, recvdest * p + j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(recv_bufb, len, MPI_CHAR, recvdest * p + j, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         matrix<type> tmp_b = matrix<type>::unserialize(recv_bufb);
@@ -155,12 +161,13 @@ matrix<type> FOX(matrix<type>&A, matrix<type>& B){
 const int mat_N = 16;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-
+    matrix<int> A, B;
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     if(world_rank == 0){
-        matrix<int> A(mat_N, mat_N), B(mat_N, mat_N);
+        A = new matrix<int>(mat_N, mat_N);
+        B = new matrix<int>(mat_N, mat_N);
         for(int i = 0; i < mat_N; ++ i){
             for(int j = 0; j < mat_N; ++ j){
                 A[i][j] = 1;
@@ -169,7 +176,7 @@ int main(int argc, char *argv[]) {
         }
     }
     int p = (int)sqrt(world_size);
-    assert(p * p = size);
+    assert(p * p == world_size);
     assert(mat_N % p == 0);
     int n = mat_N / p;
     matrix<int> a, b, c;
