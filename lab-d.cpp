@@ -1,147 +1,261 @@
-#include <cassert>
-#include <cstdio>
-#include <cmath>
 #include <mpi.h>
-#include <cstring>
-#include <cstdlib>
-#include <ctime>
-
-#define MATRIX_SIZE 4
-#define GRID_DIM 2 // GRID_DIM * GRID_DIM = MATRIX_SIZE
-
-int GlobalA[MATRIX_SIZE * MATRIX_SIZE], GlobalB[MATRIX_SIZE * MATRIX_SIZE], GlobalC[MATRIX_SIZE * MATRIX_SIZE];
-
-// 矩阵乘法
-void MultiplySubMatrices(int* matA, int* matB, int* matC, int dim) {
-    for (int i = 0; i < dim; ++i) {
-        for (int j = 0; j < dim; ++j) {
-            for (int k = 0; k < dim; ++k) {
-                matC[i * dim + j] += matA[i * dim + k] * matB[k * dim + j];
+#include <stdio.h>
+#include <cmath>
+#include <stdlib.h>
+#include <cassert>
+using namespace std;
+template<class type>
+class matrix{
+public:
+    int row, col;
+    type* mat;
+    matrix():row(0), col(0), mat(nullptr){}
+    matrix(int r, int c): row(r), col(c){
+        mat = new type[r*c];
+    }
+    ~matrix(){
+        delete[] mat;
+        row = 0, col = 0;
+    }
+    void print(){
+        for(int i = 0; i < row; ++ i){
+            for(int j = 0; j < col; ++ j){
+                cout << mat[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+    int serialize(char* res){
+        *(int*)res = row;
+        *(((int*)res) + 1) = col;
+        type* data = (type*)(((int*)res) + 2);
+        for(int i = 0; i < row*col; ++ i){
+            data[i] = mat[i];
+        }
+        return sizeof(int) * 2 + sizeof(type) * row * col;
+    }
+    static matrix<type>& unserialize(char* stream){//unknown type
+        int r = *(int*)stream;
+        int c = *(((int*)stream) + 1);
+        matrix<type>* res = new matrix<type>(r, c);//alloc
+        type* data = (type*)(((int*)stream) + 2);
+        for(int i = 0; i < r; ++ i){
+            for(int j = 0; j < c; ++ j){
+                (*res)[i][j] = data[i*c + j];
             }
         }
+        return *res;
     }
-}
-
-// Fox算法实现
-void PerformFoxAlgorithm(int* localA, int* localB, int* localC, int processID) {
-    int* bufferA = (int*)malloc(MATRIX_SIZE * sizeof(int));
-    int* bufferB = (int*)malloc(MATRIX_SIZE * sizeof(int));
-
-    int colIdx = processID % GRID_DIM;
-    int rowIdx = processID / GRID_DIM;
-
-    memset(localC, 0, sizeof(int) * MATRIX_SIZE);
-
-    for (int step = 0; step < GRID_DIM; ++step) {
-        int sender = (colIdx + step) % GRID_DIM;
-        if (rowIdx == sender) {
-            memcpy(bufferA, localA, MATRIX_SIZE * sizeof(int));
-            for (int k = 0; k < GRID_DIM; ++k) {
-                if (k != colIdx) {
-                    MPI_Send(localA, MATRIX_SIZE, MPI_INT, rowIdx * GRID_DIM + k, step, MPI_COMM_WORLD);
-                }
+    type* operator [](int x){
+        if(x >= 0 && x < row){
+            return (mat + x*col);
+        }
+        else
+            assert(0);
+    }
+        const type* operator [](int x) const{
+        if(x >= 0 && x < row){
+            return (mat + x*col);
+        }
+        else
+            assert(0);
+    }
+    matrix<type>& operator = (const matrix<type>& m){//shallow copy
+        row = m.row;
+        col = m.col;
+        mat = m.mat;
+    }
+    matrix(const matrix<type>& m): row(m.row), col(m.col){
+        row = m.row;
+        col = m.col;
+        mat = m.mat;
+    }
+    matrix<type>& split_copy(int x, int y, int tmp_row, int tmp_col){
+        matrix* res = new matrix(tmp_row, tmp_col);//alloc
+        for(int i = 0; i < tmp_row; ++ i){
+            for(int j = 0; j < tmp_col; ++ j){
+                (*res)[i][j] = (*this)[x + i][y + j];
             }
-        } else {
-            int source = (rowIdx - step + GRID_DIM) % GRID_DIM;
-            MPI_Recv(bufferA, MATRIX_SIZE, MPI_INT, source * GRID_DIM + colIdx, step, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-
-        MultiplySubMatrices(bufferA, localB, localC, GRID_DIM);
-
-        if (step < GRID_DIM - 1) {
-            int sendTo = rowIdx > 0 ? rowIdx - 1 : GRID_DIM - 1;
-            int recvFrom = rowIdx < GRID_DIM - 1 ? rowIdx + 1 : 0;
-
-            MPI_Sendrecv(localB, MATRIX_SIZE, MPI_INT, sendTo * GRID_DIM + colIdx, 0,
-                         bufferB, MATRIX_SIZE, MPI_INT, recvFrom * GRID_DIM + colIdx, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            memcpy(localB, bufferB, MATRIX_SIZE * sizeof(int));
-        }
+        return *res;
     }
-
-    free(bufferA);
-    free(bufferB);
-}
-
-// 提取子矩阵
-void ExtractSubMatrix(int* sourceMatrix, int* destMatrix, int startX, int startY, int subDim) {
-    for (int i = 0; i < subDim; ++i) {
-        for (int j = 0; j < subDim; ++j) {
-            destMatrix[i * subDim + j] = sourceMatrix[(startX * subDim + i) * MATRIX_SIZE + startY * subDim + j];
-        }
-    }
-}
-
-// 分发子矩阵
-void DistributeMatrices(int* localA, int* localB, int processID) {
-    for (int i = 0; i < GRID_DIM; ++i) {
-        for (int j = 0; j < GRID_DIM; ++j) {
-            if (i == 0 && j == 0) continue;
-            ExtractSubMatrix(GlobalA, localA, i, j, GRID_DIM);
-            ExtractSubMatrix(GlobalB, localB, i, j, GRID_DIM);
-            int targetProcess = i * GRID_DIM + j;
-            MPI_Send(localA, GRID_DIM * GRID_DIM, MPI_INT, targetProcess, processID, MPI_COMM_WORLD);
-            MPI_Send(localB, GRID_DIM * GRID_DIM, MPI_INT, targetProcess, processID, MPI_COMM_WORLD);
-        }
-    }
-    ExtractSubMatrix(GlobalA, localA, 0, 0, GRID_DIM);
-    ExtractSubMatrix(GlobalB, localB, 0, 0, GRID_DIM);
-}
-
-// 收集结果矩阵
-void CollectResults(int* localC, int* resultMatrix) {
-    for (int i = 0; i < GRID_DIM; ++i) {
-        for (int j = 0; j < GRID_DIM; ++j) {
-            if (i == 0 && j == 0) continue;
-            MPI_Recv(localC, MATRIX_SIZE, MPI_INT, i * GRID_DIM + j, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            for (int x = 0; x < GRID_DIM; ++x) {
-                for (int y = 0; y < GRID_DIM; ++y) {
-                    resultMatrix[(i * GRID_DIM + x) * MATRIX_SIZE + (j * GRID_DIM + y)] = localC[x * GRID_DIM + y];
+    matrix<type>& operator *(const matrix& m){
+        matrix<type>* res = new matrix(row, m.col);//alloc
+        memset(res->mat, 0, sizeof(type) * row * m.col);
+        assert(col == m.row);
+        for(int i = 0; i < row; ++ i){
+            for(int j = 0; j < m.col; ++ j){
+                for(int k = 0; k < m.row; ++ k){
+                    (*res)[i][j] += (*this)[i][k] * m[k][j];
                 }
             }
         }
+        return *res;//maybe leak
     }
-}
-
-int main() {
-    MPI_Init(NULL, NULL);
-
-    int processID, numProcesses;
-    MPI_Comm_rank(MPI_COMM_WORLD, &processID);
-    MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
-
-    assert(numProcesses == MATRIX_SIZE);
-
-    int* localA = (int*)malloc(MATRIX_SIZE * sizeof(int));
-    int* localB = (int*)malloc(MATRIX_SIZE * sizeof(int));
-    int* localC = (int*)malloc(MATRIX_SIZE * sizeof(int));
-
-    if (processID == 0) {
-        for (int i = 0; i < MATRIX_SIZE * MATRIX_SIZE; ++i) GlobalA[i] = 1, GlobalB[i] = 1;
-        DistributeMatrices(localA, localB, processID);
-    } else {
-        MPI_Recv(localA, MATRIX_SIZE, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(localB, MATRIX_SIZE, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    PerformFoxAlgorithm(localA, localB, localC, processID);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if (processID == 0) {
-        for (int i = 0; i < GRID_DIM; ++i) {
-            for (int j = 0; j < GRID_DIM; ++j) {
-                GlobalC[i * MATRIX_SIZE + j] = localC[i * GRID_DIM + j];
+    matrix& operator +=(const matrix<type>& m){
+        assert(row == m.row && col == m.col);
+        for(int i = 0; i < row; ++ i){
+            for(int j = 0; j < col; ++ j){
+                mat[i*col + j] += m[i][j];
             }
         }
-        CollectResults(localC, GlobalC);
-        for (int i = 0; i < MATRIX_SIZE * MATRIX_SIZE; ++i) printf("%d ", GlobalC[i]);
-    } else {
-        MPI_Send(localC, MATRIX_SIZE, MPI_INT, 0, 1, MPI_COMM_WORLD);
+        return *this;
     }
-
-    free(localA);
-    free(localB);
-    free(localC);
+};
+const int MAX_ROW = 1e3 + 5;
+template<class type>
+matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
+    int rank, size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int p = (int)sqrt(size);
+    assert(p * p == size);
+    int n = A.row;
+    matrix<type>* c = new matrix<type>(n, n);
+    char* recv_bufa = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_a
+    char* recv_bufb = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_b
+    char* send_buf = new char[MAX_ROW * MAX_ROW];
+    int j = rank % p;
+    int i = (rank - j) / p;
+    int senddest = 0, recvdest = 0;
+    for(int round = 0; round < p; ++ round){
+        if(i == (j + round) % p){
+            for(int k = 0; k < p; ++ k){
+                int len = A.serialize(send_buf);
+                if(k != j){
+                    MPI_Send(&len, 1, MPI_INT, i * p + k, (round + 1) * 2, MPI_COMM_WORLD);
+                    MPI_Send(send_buf, len, MPI_CHAR, i * p + k, (round + 1) * 2 + 1, MPI_COMM_WORLD);
+                }
+                else{
+                    for(int l = 0; l < len; ++ l){
+                        recv_bufa[l] = send_buf[l];
+                    }
+                }
+            }
+        }
+        else{
+            if(i - round < 0){
+                recvdest = i * p + i - round  + p;
+            }
+            else{
+                recvdest = i * p + i - round;
+            }
+            int len;
+            MPI_Recv(&len, 1, MPI_INT, recvdest, (round + 1) * 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(recv_bufa, len, MPI_CHAR, recvdest, (round + 1) * 2 + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        matrix<type>& a = matrix<type>::unserialize(recv_bufa);
+        (*c) += a*B;
+        if(round == p - 1)break;
+        senddest = i > 0 ? i - 1: i - 1 + p;
+        recvdest = i < p - 1 ? i + 1: i + 1 - p;
+        int len = B.serialize(send_buf);
+        MPI_Send(&len, 1, MPI_INT, senddest * p + j, 0, MPI_COMM_WORLD);
+        MPI_Send(send_buf, len, MPI_CHAR, senddest * p + j, 1, MPI_COMM_WORLD);
+        MPI_Recv(&len, 1, MPI_INT, recvdest * p + j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(recv_bufb, len, MPI_CHAR, recvdest * p + j, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        matrix<type>& tmp_b = matrix<type>::unserialize(recv_bufb);
+        for(int i = 0; i < n; ++ i){
+            for(int j = 0; j < n; ++ j){
+                B[i][j] = tmp_b[i][j];
+            }
+        }
+    }
+    delete []recv_bufa;
+    delete []recv_bufb;
+    delete []send_buf;
+    return *c;
+}
+const int mat_N = 16;
+int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    matrix<int>* A, *B, *C;
+    int world_size, world_rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    if(world_rank == 0){
+        A = new matrix<int>(mat_N, mat_N);
+        B = new matrix<int>(mat_N, mat_N);
+        C = new matrix<int>(mat_N, mat_N);
+        for(int i = 0; i < mat_N; ++ i){
+            for(int j = 0; j < mat_N; ++ j){
+                (*A)[i][j] = 1;
+                (*B)[i][j] = 1;
+            }
+        }
+    }
+    int p = (int)sqrt(world_size);
+    assert(p * p == world_size);
+    assert(mat_N % p == 0);
+    int n = mat_N / p;
+    matrix<int>&a, &b, &c;
+    MPI_Barrier(MPI_COMM_WORLD);//start
+    double start_fox = MPI_Wtime();
+    char* bufa = new char[MAX_ROW * MAX_ROW];
+    char* bufb = new char[MAX_ROW * MAX_ROW];
+    if(world_rank == 0){
+        for(int i = 0; i < p; ++ i){
+            for(int j = 0; j < p; ++ j){
+                if(i == 0 && j == 0)continue;
+                int len;
+                a = A->split_copy(i * n, j * n, n, n);
+                b = B->split_copy(i * n, j * n, n, n);
+                len = a.serialize(bufa);
+                MPI_Send(&len, 1, MPI_INT, i * p + j, 'a', MPI_COMM_WORLD);
+                MPI_Send(bufa, len, MPI_CHAR, i * p + j, 'a'+ 2, MPI_COMM_WORLD);
+                len = b.serialize(bufb);
+                MPI_Send(&len, 1, MPI_INT, i * p + j, 'b', MPI_COMM_WORLD);
+                MPI_Send(bufb, len, MPI_CHAR, i * p + j, 'b'+ 2, MPI_COMM_WORLD);
+            }
+        }
+        a = A->split_copy(0, 0, n, n);
+        b = B->split_copy(0, 0, n, n);
+    }
+    else{
+        int len;
+        MPI_Recv(&len, 1, MPI_INT, 0, 'a', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(bufa, len, MPI_INT, 0, 'a' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        a = matrix<int>::unserialize(bufa);
+        MPI_Recv(&len, 1, MPI_INT, 0, 'b', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(bufb, len, MPI_INT, 0, 'b' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        b = matrix<int>::unserialize(bufb);
+    }
+    matrix<int>&c = FOX(a, b);
+    if(world_rank != 0){
+        int len;
+        len = c.serialize(bufa);
+        MPI_Send(&len, 1, MPI_INT, 0, 'c' + 3, MPI_COMM_WORLD);
+        MPI_Send(bufa, len, MPI_CHAR, 0, 'c'+ 4, MPI_COMM_WORLD);
+    }
+    else{
+        for(int i = 0; i < p; ++ i){
+            for(int j = 0; j < p; ++ j){
+                if(i + j != 0){
+                    int len;
+                    MPI_Recv(&len, 1, MPI_INT, 'c' + 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(bufb, len, MPI_INT, 0, 'c' + 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    c = matrix<int>::unserialize(bufb);
+                }
+                for(int ii = 0; ii < n; ++ ii){
+                    for(int jj = 0; jj < n; ++ jj){
+                        (*C)[i*n + ii][j*n + jj] = c[ii][jj];
+                    }
+                }
+            }
+        }
+    }
+    double finish_fox = MPI_Wtime();
+    delete []bufa;
+    delete []bufb;
+    if(rank == 0){
+        cout << "A:" << endl;
+        A.print();
+        cout << "B:" << endl;
+        B.print();
+        cout << "A*B:" << endl;
+        C.print();
+    }
+    printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
     MPI_Finalize();
     return 0;
 }
