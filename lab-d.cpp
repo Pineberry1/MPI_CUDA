@@ -53,6 +53,13 @@ public:
         else
             assert(0);
     }
+        const type* operator [](int x) const{
+        if(x >= 0 && x < row){
+            return (mat + x*col);
+        }
+        else
+            assert(0);
+    }
     matrix<type>& operator = (const matrix<type>& m){//shallow copy
         row = m.row;
         col = m.col;
@@ -67,19 +74,19 @@ public:
         matrix* res = new matrix(tmp_row, tmp_col);//alloc
         for(int i = 0; i < tmp_row; ++ i){
             for(int j = 0; j < tmp_col; ++ j){
-                res[i][j] = (*this)[x + i][y + j];
+                (*res)[i][j] = (*this)[x + i][y + j];
             }
         }
         return *res;
     }
     matrix<type> operator *(const matrix& m){
         matrix<type>* res = new matrix(row, m.col);//alloc
-        memset(res.mat, 0, sizeof(type) * row * m.col);
+        memset(res->mat, 0, sizeof(type) * row * m.col);
         assert(col == m.row);
         for(int i = 0; i < row; ++ i){
             for(int j = 0; j < m.col; ++ j){
                 for(int k = 0; k < m.row; ++ k){
-                    res[i][j] += (*this)[i][k] * m[k][j];
+                    (*res)[i][j] += (*this)[i][k] * m[k][j];
                 }
             }
         }
