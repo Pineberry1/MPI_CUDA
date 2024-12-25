@@ -50,8 +50,8 @@ void Multi_Mat(int *a, int *b, int *c, int n){
 
 //fox矩阵乘法
 void Fox(int *a, int *b, int *c, int sp, int n, int myrank){
-    int *temp_a = malloc(n * n * sizeof(int));//用来接收a
-    int *temp_b = malloc(n * n * sizeof(int));//用来接收b
+    int *temp_a = (int*)malloc(n * n * sizeof(int));//用来接收a
+    int *temp_b = (int*)malloc(n * n * sizeof(int));//用来接收b
 
     //将处理器记为P_ij
     int j = myrank % sp;
@@ -154,9 +154,9 @@ int main(int argc, char **argv)
         return(0);
     }
     //printf("n = %d\n", n);
-    int *a = malloc(n * n * sizeof(int));//a, b, c储存方块
-    int *b = malloc(n * n * sizeof(int));
-    int *c = malloc(n * n * sizeof(int));
+    int *a = (int*)malloc(n * n * sizeof(int));//a, b, c储存方块
+    int *b = (int*)malloc(n * n * sizeof(int));
+    int *c = (int*)malloc(n * n * sizeof(int));
 
     //计时开始
     MPI_Barrier(MPI_COMM_WORLD);
