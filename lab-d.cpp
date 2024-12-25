@@ -188,7 +188,8 @@ int main(int argc, char *argv[]) {
     assert(p * p == world_size);
     assert(mat_N % p == 0);
     int n = mat_N / p;
-    matrix<int>&a, &b, &c;
+    matrix<int> tmpp;
+    matrix<int>&a = tmpp, &b = tmpp, &c = tmpp;
     MPI_Barrier(MPI_COMM_WORLD);//start
     double start_fox = MPI_Wtime();
     char* bufa = new char[MAX_ROW * MAX_ROW];
@@ -220,7 +221,7 @@ int main(int argc, char *argv[]) {
         MPI_Recv(bufb, len, MPI_INT, 0, 'b' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         b = matrix<int>::unserialize(bufb);
     }
-    matrix<int>&c = FOX(a, b);
+    c = FOX(a, b);
     if(world_rank != 0){
         int len;
         len = c.serialize(bufa);
@@ -247,13 +248,13 @@ int main(int argc, char *argv[]) {
     double finish_fox = MPI_Wtime();
     delete []bufa;
     delete []bufb;
-    if(rank == 0){
+    if(world_rank == 0){
         cout << "A:" << endl;
-        A.print();
+        A->print();
         cout << "B:" << endl;
-        B.print();
+        B->print();
         cout << "A*B:" << endl;
-        C.print();
+        C->print();
     }
     printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
     MPI_Finalize();
