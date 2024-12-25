@@ -101,6 +101,9 @@ public:
         }
         return *this;
     }
+    void clear(){
+        memset(mat, 0, sizeof(type) * row * col);
+    }
 };
 const int MAX_ROW = 1e3 + 5;
 template<class type>
@@ -112,11 +115,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     assert(p * p == size);
     int n = A.row;
     matrix<type>* c = new matrix<type>(n, n);
-    for(int i = 0; i < n; ++ i){
-        for(int j = 0; j < n; ++ j){
-            (*c)[i][j] = 0;
-        }
-    }
+    c->clear();
     char* recv_bufa = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_a
     char* recv_bufb = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_b
     char* send_buf = new char[MAX_ROW * MAX_ROW];
@@ -171,7 +170,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []send_buf;
     return *c;
 }
-const int mat_N = 4;
+const int mat_N = 16;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     matrix<int>* A, *B, *C;
