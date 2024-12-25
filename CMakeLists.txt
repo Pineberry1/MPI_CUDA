@@ -20,3 +20,6 @@ add_executable(labc2 lab-c-2.c)
 target_include_directories(labc2 PUBLIC ${MPI_INCLUDE_PATH})
 target_link_libraries(labc2 ${MPI_LIBRARIES})
 
+add_executable(labd lab-d.cpp)
+target_include_directories(labd PUBLIC ${MPI_INCLUDE_PATH})
+target_link_libraries(labd ${MPI_LIBRARIES})
