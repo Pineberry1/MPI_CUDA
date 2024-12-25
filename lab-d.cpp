@@ -170,7 +170,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []send_buf;
     return *c;
 }
-const int mat_N = 16;
+const int mat_N = 1024;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     matrix<int>* A, *B, *C;
@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
     double finish_fox = MPI_Wtime();
     delete []bufa;
     delete []bufb;
-    #define DEBUG
+    //#define DEBUG
     if(world_rank == 0){
         #ifdef DEBUG
         cout << "A:" << endl;
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
 
         //计算加速比
         double rate = (finish - start)/(finish_fox - start_fox);
-        printf("并行加速比为: %f\n", rate);
+        printf("并行%d核加速比为: %f\n", world_size, rate);
 
     }
     MPI_Finalize();
