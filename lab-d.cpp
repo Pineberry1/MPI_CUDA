@@ -127,8 +127,8 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
             for(int k = 0; k < p; ++ k){
                 int len = A.serialize(send_buf);
                 if(k != j){
-                    MPI_Send(&len, 1, MPI_INT, i * p + k, (round + 1) * 2, MPI_COMM_WORLD);
-                    MPI_Send(send_buf, len, MPI_CHAR, i * p + k, (round + 1) * 2 + 1, MPI_COMM_WORLD);
+                    MPI_Send(&len, 1, MPI_INT, i * p + k, (round + 1) * p, MPI_COMM_WORLD);
+                    MPI_Send(send_buf, len, MPI_CHAR, i * p + k, (round + 1) * p + 1, MPI_COMM_WORLD);
                 }
                 else{
                     for(int l = 0; l < len; ++ l){
@@ -145,8 +145,8 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
                 recvdest = i * p + i - round;
             }
             int len;
-            MPI_Recv(&len, 1, MPI_INT, recvdest, (round + 1) * 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(recv_bufa, len, MPI_CHAR, recvdest, (round + 1) * 2 + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&len, 1, MPI_INT, recvdest, (round + 1) * p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(recv_bufa, len, MPI_CHAR, recvdest, (round + 1) * p + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         matrix<type>& a = matrix<type>::unserialize(recv_bufa);
         (*c) += a*B;
@@ -154,10 +154,9 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
         senddest = i > 0 ? i - 1: i - 1 + p;
         recvdest = i < p - 1 ? i + 1: i + 1 - p;
         int len = B.serialize(send_buf);
-        MPI_Send(&len, 1, MPI_INT, senddest * p + j, 0, MPI_COMM_WORLD);
-        MPI_Send(send_buf, len, MPI_CHAR, senddest * p + j, 1, MPI_COMM_WORLD);
-        MPI_Recv(&len, 1, MPI_INT, recvdest * p + j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(recv_bufb, len, MPI_CHAR, recvdest * p + j, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        int len2;
+        MPI_Sendrecv(&len, 1, MPI_INT, senddest * p + j, 0, &len2, 1, MPI_INT, recvdest * p + j, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Sendrecv(send_buf, len, MPI_CHAR, senddest * p + j, 1, recv_bufb, len2, MPI_CHAR, recvdest * p + j, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         matrix<type>& tmp_b = matrix<type>::unserialize(recv_bufb);
         for(int i = 0; i < n; ++ i){
             for(int j = 0; j < n; ++ j){
@@ -225,8 +224,6 @@ int main(int argc, char *argv[]) {
         MPI_Recv(bufb, len, MPI_CHAR, 0, 'b' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         b = matrix<int>::unserialize(bufb);
     }
-    a.print();
-    b.print();
     c = FOX(a, b);
     if(world_rank != 0){
         int len;
