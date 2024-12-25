@@ -112,6 +112,11 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     assert(p * p == size);
     int n = A.row;
     matrix<type>* c = new matrix<type>(n, n);
+    for(int i = 0; i < n; ++ i){
+        for(int j = 0; j < n; ++ j){
+            (*c)[i][j] = 0;
+        }
+    }
     char* recv_bufa = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_a
     char* recv_bufb = new char[n * n * sizeof(type) + sizeof(int) * 2];//recv_b
     char* send_buf = new char[MAX_ROW * MAX_ROW];
@@ -164,7 +169,6 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []recv_bufa;
     delete []recv_bufb;
     delete []send_buf;
-    c -> print();
     return *c;
 }
 const int mat_N = 4;
