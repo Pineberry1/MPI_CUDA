@@ -252,14 +252,32 @@ int main(int argc, char *argv[]) {
     double finish_fox = MPI_Wtime();
     delete []bufa;
     delete []bufb;
+    #define DEBUG
     if(world_rank == 0){
+        #ifdef DEBUG
         cout << "A:" << endl;
         A->print();
         cout << "B:" << endl;
         B->print();
         cout << "A*B:" << endl;
         C->print();
+        #endif
         printf("fox并行乘法耗时: %f\n", finish_fox - start_fox);
+                //串行乘法
+        double start =  MPI_Wtime();
+        *C = A*B;
+        double finish = MPI_Wtime();
+
+        #ifdef DEBUG
+        printf("串行计算结果 A*B : \n");
+        C->print();
+        #endif
+        printf("串行乘法耗时: %f\n", finish - start);
+
+        //计算加速比
+        double rate = (finish - start)/(finish_fox - start_fox);
+        printf("并行加速比为: %f\n", rate);
+
     }
     MPI_Finalize();
     return 0;
