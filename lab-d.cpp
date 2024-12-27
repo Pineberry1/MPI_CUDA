@@ -107,6 +107,19 @@ public:
 };
 const int MAX_ROW = 1e4 + 5;
 template<class type>
+void sendmat(const matrix<type>& mat, char *buf, int senddest, int tag, MPI_COMM comm){
+    int len = mat.serialize(buf);
+    MPI_Send(&len, 1, MPI_INT, senddest, tag ^ (1 << 15), comm);
+    MPI_Send(buf, len, MPI_CHAR, senddest, tag, comm);
+}
+template<class type>
+void recvmat(matrix<type>& mat, char *buf, int recvdest, int tag, MPI_COMM comm){
+    int len;
+    MPI_Recv(&len, 1, MPI_INT, recvdest, tag ^ (1 << 15), comm, MPI_STATUS_IGNORE);
+    MPI_Recv(buf, len, MPI_CHAR, recvdest, tag, comm, MPI_STATUS_IGNORE);
+    mat = matrix<type>::unserialize(buf);
+}
+template<class type>
 matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     int rank, size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -169,7 +182,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []send_buf;
     return *c;
 }
-const int mat_N = 2048;
+const int mat_N = 128;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     matrix<int>* A, *B, *C;
@@ -182,8 +195,8 @@ int main(int argc, char *argv[]) {
         C = new matrix<int>(mat_N, mat_N);
         for(int i = 0; i < mat_N; ++ i){
             for(int j = 0; j < mat_N; ++ j){
-                (*A)[i][j] = 1;
-                (*B)[i][j] = 1;
+                (*A)[i][j] = rand() % 10;
+                (*B)[i][j] = rand() % 10;
             }
         }
     }
@@ -201,44 +214,28 @@ int main(int argc, char *argv[]) {
         for(int i = 0; i < p; ++ i){
             for(int j = 0; j < p; ++ j){
                 if(i + j == 0)continue;
-                int len;
                 a = A->split_copy(i * n, j * n, n, n);
                 b = B->split_copy(i * n, j * n, n, n);
-                len = a.serialize(bufa);
-                MPI_Send(&len, 1, MPI_INT, i * p + j, 'a', MPI_COMM_WORLD);
-                MPI_Send(bufa, len, MPI_CHAR, i * p + j, 'a'+ 2, MPI_COMM_WORLD);
-                len = b.serialize(bufb);
-                MPI_Send(&len, 1, MPI_INT, i * p + j, 'b', MPI_COMM_WORLD);
-                MPI_Send(bufb, len, MPI_CHAR, i * p + j, 'b'+ 2, MPI_COMM_WORLD);
+                sendmat(a, bufa, i * p + j, 'a', MPI_COMM_WORLD);
+                sendmat(b, bufb, i * p + j, 'b', MPI_COMM_WORLD);
             }
         }
         a = A->split_copy(0, 0, n, n);
         b = B->split_copy(0, 0, n, n);
     }
     else{
-        int len;
-        MPI_Recv(&len, 1, MPI_INT, 0, 'a', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(bufa, len, MPI_CHAR, 0, 'a' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        a = matrix<int>::unserialize(bufa);
-        MPI_Recv(&len, 1, MPI_INT, 0, 'b', MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(bufb, len, MPI_CHAR, 0, 'b' + 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        b = matrix<int>::unserialize(bufb);
+        recvmat(a, bufa, 0, 'a', MPI_COMM_WORLD);
+        recvmat(b, bufb, 0, 'b', MPI_COMM_WORLD);
     }
     c = FOX(a, b);
     if(world_rank != 0){
-        int len;
-        len = c.serialize(bufa);
-        MPI_Send(&len, 1, MPI_INT, 0, 'c' + 3, MPI_COMM_WORLD);
-        MPI_Send(bufa, len, MPI_CHAR, 0, 'c'+ 4, MPI_COMM_WORLD);
+        sendmat(c, bufa, 0, 'c', MPI_COMM_WORLD);
     }
     else{
         for(int i = 0; i < p; ++ i){
             for(int j = 0; j < p; ++ j){
                 if(i + j != 0){
-                    int len;
-                    MPI_Recv(&len, 1, MPI_INT, i*p + j, 'c' + 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    MPI_Recv(bufb, len, MPI_CHAR, i*p + j, 'c' + 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    c = matrix<int>::unserialize(bufb);
+                    recvmat(c, bufb, i*p + j, 'c', MPI_COMM_WORLD);
                 }
                 for(int ii = 0; ii < n; ++ ii){
                     for(int jj = 0; jj < n; ++ jj){
