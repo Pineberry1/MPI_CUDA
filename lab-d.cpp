@@ -138,7 +138,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
             }
         }
         else{
-            if(i - round < 0){
+            if(i < round){
                 recvdest = i * p + i - round  + p;
             }
             else{
@@ -169,7 +169,7 @@ matrix<type>& FOX(matrix<type>&A, matrix<type>& B){
     delete []send_buf;
     return *c;
 }
-const int mat_N = 128;
+const int mat_N = 2048;
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     matrix<int>* A, *B, *C;
