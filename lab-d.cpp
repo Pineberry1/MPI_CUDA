@@ -107,13 +107,13 @@ public:
 };
 const int MAX_ROW = 1e4 + 5;
 template<class type>
-void sendmat(const matrix<type>& mat, char *buf, int senddest, int tag, MPI_COMM comm){
+void sendmat(const matrix<type>& mat, char *buf, int senddest, int tag, MPI_Comm comm){
     int len = mat.serialize(buf);
     MPI_Send(&len, 1, MPI_INT, senddest, tag ^ (1 << 15), comm);
     MPI_Send(buf, len, MPI_CHAR, senddest, tag, comm);
 }
 template<class type>
-void recvmat(matrix<type>& mat, char *buf, int recvdest, int tag, MPI_COMM comm){
+void recvmat(matrix<type>& mat, char *buf, int recvdest, int tag, MPI_Comm comm){
     int len;
     MPI_Recv(&len, 1, MPI_INT, recvdest, tag ^ (1 << 15), comm, MPI_STATUS_IGNORE);
     MPI_Recv(buf, len, MPI_CHAR, recvdest, tag, comm, MPI_STATUS_IGNORE);

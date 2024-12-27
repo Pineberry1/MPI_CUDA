@@ -6,7 +6,7 @@
 #include<random>
 const int P = 4;
 int N;
-int main(){
+int main(int argc, char *argv[]){
     MPI_Init(&argc, &argv);
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -18,7 +18,7 @@ int main(){
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> distrib(0, 1);
-    MPI_COMM group_work, group_server;
+    MPI_Comm group_work, group_server;
     MPI_Comm_split(MPI_COMM_WORLD, rank % P, rank, &group_work);//工作组
     MPI_Comm_split(MPI_COMM_WORLD, rank < P ? 0 : 1, rank, &group_server);//参数服务器组
     double globalAvg;
