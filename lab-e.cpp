@@ -19,8 +19,8 @@ int main(int argc, char *argv[]){
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> distrib(0, 1);
     MPI_Comm group_work, group_server;
-    MPI_Comm_split(MPI_COMM_WORLD, rank % P, rank, &group_work);//工作组
-    MPI_Comm_split(MPI_COMM_WORLD, rank < P ? 0 : 1, rank, &group_server);//参数服务器组
+    MPI_Comm_split(MPI_COMM_WORLD, world_rank % P, world_rank, &group_work);//工作组
+    MPI_Comm_split(MPI_COMM_WORLD, world_rank < P ? 0 : 1, world_rank, &group_server);//参数服务器组
     double globalAvg;
     if(world_rank >= P){//工作进程
         while(1){
