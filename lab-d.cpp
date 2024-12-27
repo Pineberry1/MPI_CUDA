@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
     if(world_rank == 0){
         for(int i = 0; i < p; ++ i){
             for(int j = 0; j < p; ++ j){
-                if(i == 0 && j == 0)continue;
+                if(i + j == 0)continue;
                 int len;
                 a = A->split_copy(i * n, j * n, n, n);
                 b = B->split_copy(i * n, j * n, n, n);
