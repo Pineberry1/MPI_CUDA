@@ -25,7 +25,7 @@ public:
             cout << endl;
         }
     }
-    int serialize(char* res){
+    int serialize(char* res) const{
         *(int*)res = row;
         *(((int*)res) + 1) = col;
         type* data = (type*)(((int*)res) + 2);
