@@ -31,9 +31,11 @@ int main(int argc, char *argv[]){
         }
     }
     else{//参数服务器进程
-        int group_size;
+        int group_size, group_rank;
         double recvdata;
         MPI_Comm_size(group_work, &group_size);
+        MPI_Comm_rank(group_work, &group_rank);
+        std::cout << "cur_rank:" << group_rank << std::endl;
         while(1){
             double recvsum = 0;
             for(int i = 1; i < group_size; ++ i){
@@ -42,10 +44,9 @@ int main(int argc, char *argv[]){
             }
             std::cout << "服务器进程" << world_rank << "接收到的总和为: " << recvsum << std::endl;
             MPI_Allreduce(&recvsum, &globalAvg, 1, MPI_DOUBLE, MPI_SUM, group_server);
-            std::cout << "服务器进程" << world_rank << "收取完毕"  << std::endl;
             globalAvg /= Q;
             MPI_Bcast(&globalAvg, 1, MPI_DOUBLE, 0, group_work);
-            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Barrier(MPI_COMM_WORLD);    
             std::cout << "服务器进程" << world_rank << "广播平均值: " << globalAvg << std::endl;
         }
     }
