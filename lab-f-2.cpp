@@ -81,11 +81,7 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     grid_dim = std::sqrt(size);
-    if (grid_dim * grid_dim != size) {
-        if (rank == 0) std::cerr << "Number of processors must be a perfect square." << std::endl;
-        MPI_Finalize();
-        return -1;
-    }
+    assert(grid_dim * grid_dim == size);
 
     rows_per_proc = N / grid_dim;
     cols_per_proc = N / grid_dim;
@@ -120,7 +116,7 @@ int main(int argc, char *argv[]) {
     }
 
     MPI_Scatterv(A.data(), send_counts.data(), displs.data(), block_type, local_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
+    assert(0);
     int start_row = (proc_row == 0) ? 1 : 0;
     int end_row = (proc_row == grid_dim - 1) ? rows_per_proc - 1 : rows_per_proc;
     int start_col = (proc_col == 0) ? 1 : 0;
