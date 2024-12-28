@@ -5,26 +5,56 @@
 #include <cstdlib>
 
 #define N 2048 // Matrix size
-
+int rank, size, rows_per_proc;
 // Function to update matrix B based on matrix A
-void update(const std::vector<double> &A, std::vector<double> &B, int row_start, int row_end, int col_start, int col_end) {
-    for (int i = row_start; i < row_end; i++) {
-        for (int j = col_start; j < col_end; j++) {
-            B[i * N + j] = (A[(i - 1) * N + j] + A[i * N + j + 1] + A[(i + 1) * N + j] + A[i * N + j - 1]) / 4.0;
+void update(const std::vector<double> &A, std::vector<double> &B, int start_row, int end_row, bool start_comm, bool end_comm) {
+    MPI_Request requests[2];
+    int rank;
+    double recvnum[2*N];
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if(start_comm){
+        MPI_Isend(A.data(), N, MPI_DOUBLE, rank - 1, rank, MPI_COMM_WORLD, &requests[0]);//可以不管
+        MPI_Irecv(recvnum, N, MPI_DOUBLE, rank - 1, rank - 1, MPI_COMM_WORLD, &requests[0]);
+    }
+    if(end_comm){
+        MPI_Isend(&*(A.end() - N), N, MPI_DOUBLE, rank + 1, rank, MPI_COMM_WORLD, &requests[1]);
+        MPI_Irecv(recvnum + N, N, MPI_DOUBLE, rank + 1, rank + 1, MPI_COMM_WORLD, &requests[1]);
+    }
+    for (int i = start_row; i < end_row; i++) {
+        for (int j = 1; j < N - 1; j++) {
+            B[i * N + j] = (A[i * N + j + 1] + A[i * N + j - 1]);
+            if(i > 0) B[i * N + j] += A[(i - 1) * N + j];
+            if(i < rows_per_proc - 1) B[i * N + j] += A[(i + 1) * N + j];
+            //B[i * N + j] /= 4;
+            //std::cout << A[i*N + j] << " ";
         }
+        //std::cout << std::endl;
+    }
+    if(start_comm){
+        MPI_Wait(&requests[0], MPI_STATUS_IGNORE);
+        for(int j = 1; j < N - 1; ++ j){
+            B[j] += recvnum[j];
+        }
+    }
+    if(end_comm){
+        MPI_Wait(&requests[1], MPI_STATUS_IGNORE);
+        for(int j = 1; j < N - 1; ++ j){
+            *(B.end() - N + j) += recvnum[j + N];
+        }
+    }
+    for(auto& x: B){
+        x /= 4;
     }
 }
 
 int main(int argc, char *argv[]) {
-    int rank, size;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Ensure size is a perfect square for chessboard decomposition
-    int q = static_cast<int>(std::sqrt(size));
-    if (q * q != size) {
-        if (rank == 0) std::cerr << "Number of processors must be a perfect square." << std::endl;
+    // Check if N can be divided by size
+    if (N % size != 0) {
+        if (rank == 0) std::cerr << "Matrix size N must be divisible by the number of processors." << std::endl;
         MPI_Finalize();
         return -1;
     }
@@ -36,97 +66,42 @@ int main(int argc, char *argv[]) {
         B.resize(N * N);
         for (int i = 0; i < N * N; i++) {
             A[i] = rand() % 100;
+            //A[i] = 1;
         }
     }
+    double start =  MPI_Wtime();//开始计时
+    // Allocate local matrices
+    rows_per_proc = N / size;
+    std::vector<double> local_A(rows_per_proc * N);
+    std::vector<double> local_B(rows_per_proc * N);
 
-    // Determine local matrix dimensions
-    int rows_per_proc = N / q;
-    int cols_per_proc = N / q;
-    std::vector<double> local_A((rows_per_proc + 2) * (cols_per_proc + 2)); // Include halo rows and columns
-    std::vector<double> local_B(rows_per_proc * cols_per_proc);
+    // Scatter rows of A to all processes
+    MPI_Scatter(A.data(), rows_per_proc * N, MPI_DOUBLE, local_A.data(), rows_per_proc * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Scatter submatrices of A to all processes
-    std::vector<double> sub_A(rows_per_proc * cols_per_proc);
-    double start = MPI_Wtime();
-    if (rank == 0) {
-        for (int p = 0; p < size; p++) {
-            int proc_row = p / q;
-            int proc_col = p % q;
-            for (int i = 0; i < rows_per_proc; i++) {
-                for (int j = 0; j < cols_per_proc; j++) {
-                    sub_A[i * cols_per_proc + j] = A[(proc_row * rows_per_proc + i) * N + proc_col * cols_per_proc + j];
-                }
-            }
-            if (p == 0) {
-                local_A.assign(sub_A.begin(), sub_A.end());
-            } else {
-                MPI_Send(sub_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, p, 0, MPI_COMM_WORLD);
-            }
-        }
-    } else {
-        MPI_Recv(local_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-
-    // Exchange halo rows and columns with neighbors
-    MPI_Request requests[8];
-    for (int i = 0; i < 8; i++) requests[i] = MPI_REQUEST_NULL;
-
-    int proc_row = rank / q;
-    int proc_col = rank % q;
-
-    // Send/receive halo rows
-    if (proc_row > 0) { // Top neighbor
-        MPI_Isend(local_A.data() + cols_per_proc, cols_per_proc, MPI_DOUBLE, rank - q, 0, MPI_COMM_WORLD, &requests[0]);
-        MPI_Irecv(local_A.data(), cols_per_proc, MPI_DOUBLE, rank - q, 1, MPI_COMM_WORLD, &requests[1]);
-    }
-    if (proc_row < q - 1) { // Bottom neighbor
-        MPI_Isend(local_A.data() + rows_per_proc * cols_per_proc, cols_per_proc, MPI_DOUBLE, rank + q, 1, MPI_COMM_WORLD, &requests[2]);
-        MPI_Irecv(local_A.data() + (rows_per_proc + 1) * cols_per_proc, cols_per_proc, MPI_DOUBLE, rank + q, 0, MPI_COMM_WORLD, &requests[3]);
-    }
-
-    // Send/receive halo columns
-    if (proc_col > 0) { // Left neighbor
-        MPI_Isend(local_A.data() + cols_per_proc, 1, MPI_DOUBLE, rank - 1, 2, MPI_COMM_WORLD, &requests[4]);
-        MPI_Irecv(local_A.data(), 1, MPI_DOUBLE, rank - 1, 3, MPI_COMM_WORLD, &requests[5]);
-    }
-    if (proc_col < q - 1) { // Right neighbor
-        MPI_Isend(local_A.data() + cols_per_proc - 1, 1, MPI_DOUBLE, rank + 1, 3, MPI_COMM_WORLD, &requests[6]);
-        MPI_Irecv(local_A.data() + cols_per_proc, 1, MPI_DOUBLE, rank + 1, 2, MPI_COMM_WORLD, &requests[7]);
-    }
-
-    MPI_Waitall(8, requests, MPI_STATUSES_IGNORE);
+    // Compute the range of rows for each process
+    int start_row = (rank == 0) ? 1 : 0;
+    int end_row = (rank == size - 1) ? rows_per_proc - 1 : rows_per_proc;
 
     // Update local matrix B based on local A
-    update(local_A, local_B, 1, rows_per_proc + 1, 1, cols_per_proc + 1);
-
+    // if(rank == 0)
+    //     update(local_A, local_B, start_row, end_row, 0, 1);
+    // else if(rank == size - 1)
+    //     update(local_A, local_B, start_row, end_row, 1, 0);
+    // else
+    //     update(local_A, local_B, start_row, end_row, 1, 1);
     // Gather results into B
-    if (rank == 0) {
-        for (int p = 0; p < size; p++) {
-            if (p == 0) {
-                for (int i = 0; i < rows_per_proc; i++) {
-                    for (int j = 0; j < cols_per_proc; j++) {
-                        B[(proc_row * rows_per_proc + i) * N + proc_col * cols_per_proc + j] = local_B[i * cols_per_proc + j];
-                    }
-                }
-            } else {
-                MPI_Recv(sub_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, p, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                int proc_row = p / q;
-                int proc_col = p % q;
-                for (int i = 0; i < rows_per_proc; i++) {
-                    for (int j = 0; j < cols_per_proc; j++) {
-                        B[(proc_row * rows_per_proc + i) * N + proc_col * cols_per_proc + j] = sub_A[i * cols_per_proc + j];
-                    }
-                }
-            }
-        }
-    } else {
-        MPI_Send(local_B.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
-    }
+    update(local_A, local_B, start_row, end_row, 0, 0);
+    MPI_Gather(local_B.data(), rows_per_proc * N, MPI_DOUBLE, B.data(), rows_per_proc * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     double finish = MPI_Wtime();
     if (rank == 0) {
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
-        printf("行列式划分%d耗时: %f\n",size, finish - start);
+        printf("按行块划分%d核耗时: %f\n", size, finish - start);
+        // for (int i = 0; i < N; i++) {
+        //     for(int j = 0; j < N; ++ j)
+        //         std::cout << B[i*N + j] << " ";
+        //     std::cout << std::endl;
+        // }
     }
 
     MPI_Finalize();
