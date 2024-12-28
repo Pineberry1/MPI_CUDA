@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#define N 1024 // Matrix size
+#define N 2048 // Matrix size
 int rank, size, rows_per_proc;
 // Function to update matrix B based on matrix A
 void update(const std::vector<double> &A, std::vector<double> &B, int start_row, int end_row, bool start_comm, bool end_comm) {
