@@ -44,23 +44,29 @@ int main(int argc, char *argv[]) {
         sendbuf[i] = i;
         recvbuf[i] = -1;
     }
+    int times = 10000;
     double start =  MPI_Wtime();
-    My_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
-    double finish = MPI_Wtime();
-    printf("My_Alltoall耗时: %f\n", finish - start);
-    
+    for(int i = 0; i < times; ++ i)
+        My_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
+    double finish = MPI_Wtime();
+    if(world_rank == 0){
+        printf("My_Alltoall耗时: %f\n", finish - start);//此时alltoall全部计算完毕
+    }
 
     start =  MPI_Wtime();
-    MPI_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
+    for(int i = 0; i < times; ++ i)
+        MPI_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
     finish = MPI_Wtime();
-    printf("MPI_Alltoall耗时: %f\n", finish - start);
-
-    printf("cur_rank: %d, recvdata: ", world_rank);
-    for (int i = 0; i < world_size; ++i) {
-        printf("%d ", recvbuf[i]);
+    if(world_rank == 0){
+        printf("MPI_Alltoall耗时: %f\n", finish - start);
     }
-    printf("\n");
+    // printf("cur_rank: %d, recvdata: ", world_rank);
+    // for (int i = 0; i < world_size; ++i) {
+    //     printf("%d ", recvbuf[i]);
+    // }
+    // printf("\n");
 
     free(sendbuf);
     free(recvbuf);
