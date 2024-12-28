@@ -44,9 +44,18 @@ int main(int argc, char *argv[]) {
         sendbuf[i] = i;
         recvbuf[i] = -1;
     }
+    double start =  MPI_Wtime();
+    My_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
+    double finish = MPI_Wtime();
+    printf("My_Alltoall耗时: %f\n", finish - start);
+    
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    //My_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
+    start =  MPI_Wtime();
     MPI_Alltoall(sendbuf, 1, MPI_INT, recvbuf, 1, MPI_INT, MPI_COMM_WORLD);
+    finish = MPI_Wtime();
+    printf("MPI_Alltoall耗时: %f\n", finish - start);
+
     printf("cur_rank: %d, recvdata: ", world_rank);
     for (int i = 0; i < world_size; ++i) {
         printf("%d ", recvbuf[i]);
