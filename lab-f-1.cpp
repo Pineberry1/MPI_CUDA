@@ -13,11 +13,11 @@ void update(const std::vector<double> &A, std::vector<double> &B, int start_row,
     double recvnum[2*N];
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if(start_comm){
-        MPI_Isend(A.begin(), N, MPI_DOUBLE, rank - 1, rank, MPI_COMM_WORLD, &requests[0]);//可以不管
+        MPI_Isend(A.data(), N, MPI_DOUBLE, rank - 1, rank, MPI_COMM_WORLD, &requests[0]);//可以不管
         MPI_Irecv(recvnum, N, MPI_DOUBLE, rank - 1, rank - 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE, &requests[0]);
     }
     if(end_comm){
-        MPI_Isend(A.end() - N, N, MPI_DOUBLE, rank + 1, rank, MPI_COMM_WORLD, &requests[1]);
+        MPI_Isend(&*(A.end() - N), N, MPI_DOUBLE, rank + 1, rank, MPI_COMM_WORLD, &requests[1]);
         MPI_Irecv(recvnum + N, N, MPI_DOUBLE, rank + 1, rank + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE, &requests[1]);
     }
     for (int i = start_row; i < end_row; i++) {
