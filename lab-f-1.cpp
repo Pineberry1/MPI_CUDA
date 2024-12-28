@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#define N 16 // Matrix size
+#define N 1024 // Matrix size
 int rank, size, rows_per_proc;
 // Function to update matrix B based on matrix A
 void update(const std::vector<double> &A, std::vector<double> &B, int start_row, int end_row, bool start_comm, bool end_comm) {
@@ -65,8 +65,8 @@ int main(int argc, char *argv[]) {
         A.resize(N * N);
         B.resize(N * N);
         for (int i = 0; i < N * N; i++) {
-            //A[i] = rand() % 100;
-            A[i] = 1;
+            A[i] = rand() % 100;
+            //A[i] = 1;
         }
     }
     double start =  MPI_Wtime();//开始计时
@@ -95,12 +95,12 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
-        printf("按行块划分耗时: %f\n", finish - start);
-        for (int i = 0; i < N; i++) {
-            for(int j = 0; j < N; ++ j)
-                std::cout << B[i*N + j] << " ";
-            std::cout << std::endl;
-        }
+        printf("按行块划分%d核耗时: %f\n", size, finish - start);
+        // for (int i = 0; i < N; i++) {
+        //     for(int j = 0; j < N; ++ j)
+        //         std::cout << B[i*N + j] << " ";
+        //     std::cout << std::endl;
+        // }
     }
 
     MPI_Finalize();
