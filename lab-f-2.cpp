@@ -103,19 +103,19 @@ int main(int argc, char *argv[]) {
     std::vector<double> local_A(rows_per_proc * cols_per_proc);
     std::vector<double> local_B(rows_per_proc * cols_per_proc);
 
-    MPI_Datatype block_type;
-    MPI_Type_vector(rows_per_proc, cols_per_proc, N, MPI_DOUBLE, &block_type);
-    MPI_Type_create_resized(block_type, 0, cols_per_proc * sizeof(double), &block_type);
-    MPI_Type_commit(&block_type);
+    // MPI_Datatype block_type;
+    // MPI_Type_vector(rows_per_proc, cols_per_proc, N, MPI_DOUBLE, &block_type);
+    // MPI_Type_create_resized(block_type, 0, cols_per_proc * sizeof(double), &block_type);
+    // MPI_Type_commit(&block_type);
 
-    std::vector<int> send_counts(size, 1);
+    std::vector<int> send_counts(size, rows_per_proc * cols_per_proc);
     std::vector<int> displs(size);
     for (int i = 0; i < grid_dim; ++i) {
         for (int j = 0; j < grid_dim; ++j) {
             displs[i * grid_dim + j] = i * rows_per_proc * N + j * cols_per_proc;
         }
     }
-    MPI_Scatterv(A.data(), send_counts.data(), displs.data(), block_type, local_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(A.data(), send_counts.data(), displs.data(), MPI_DOUBLE, local_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     int start_row = (proc_row == 0) ? 1 : 0;
     int end_row = (proc_row == grid_dim - 1) ? rows_per_proc - 1 : rows_per_proc;
     int start_col = (proc_col == 0) ? 1 : 0;
