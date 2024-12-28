@@ -42,6 +42,7 @@ int main(int argc, char *argv[]){
             }
             std::cout << "服务器进程" << world_rank << "接收到的总和为: " << recvsum << std::endl;
             MPI_Allreduce(&recvsum, &globalAvg, 1, MPI_DOUBLE, MPI_SUM, group_server);
+            std::cout << "服务器进程" << world_rank << "收取完毕"  << std::endl;
             globalAvg /= Q;
             MPI_Bcast(&globalAvg, 1, MPI_DOUBLE, 0, group_work);
             MPI_Barrier(MPI_COMM_WORLD);
