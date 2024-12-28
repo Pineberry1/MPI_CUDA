@@ -11,8 +11,9 @@ void update(const std::vector<double> &A, std::vector<double> &B, int start_row,
     for (int i = start_row; i < end_row; i++) {
         for (int j = 1; j < N - 1; j++) {
             B[i * N + j] = (A[(i - 1) * N + j] + A[i * N + j + 1] + A[(i + 1) * N + j] + A[i * N + j - 1]) / 4.0;
-            std::cout << A[i*N + j] << std::endl;
+            std::cout << A[i*N + j] << " ";
         }
+        std::cout << std::endl;
     }
 }
 
