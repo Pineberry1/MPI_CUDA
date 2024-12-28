@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#define N 2048 // Matrix size
+#define N 1024 // Matrix size
 
 // Function to update matrix B based on matrix A
 void update(const std::vector<double> &A, std::vector<double> &B, int row_start, int row_end, int col_start, int col_end) {
@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
 
     // Scatter submatrices of A to all processes
     std::vector<double> sub_A(rows_per_proc * cols_per_proc);
+    double start = MPI_Wtime();
     if (rank == 0) {
         for (int p = 0; p < size; p++) {
             int proc_row = p / q;
@@ -121,8 +122,9 @@ int main(int argc, char *argv[]) {
     } else {
         MPI_Send(local_B.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
     }
-
+    double finish = MPI_Wtime();
     if (rank == 0) {
+        printf("行列式划分%d耗时: %f\n",size, finish - start);
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
     }
