@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include<cassert>
 
-#define N 16 // Matrix size
+#define N 1024 // Matrix size
 int rank, size, rows_per_proc, cols_per_proc, grid_dim;
 int proc_row, proc_col;
 
