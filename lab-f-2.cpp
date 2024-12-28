@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
     if (process_rank == 0) {
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
-        printf("按棋盘划分%d核耗时: %f\n", size, finish - start);
+        printf("按棋盘划分%d核耗时: %f\n", total_processes, finish - start);
         // for (int i = 0; i < N; i++) {
         //     for(int j = 0; j < N; ++ j)
         //         std::cout << B[i*N + j] << " ";
