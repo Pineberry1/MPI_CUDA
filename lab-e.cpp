@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
         MPI_Comm_rank(group_work, &group_rank);
         while(1){
             double recvsum = 0;
-            std::cout << "服务器接收数据" << std::endl;
+            //std::cout << "服务器接收数据" << std::endl;
             for(int i = 1; i < group_size; ++ i){
                 MPI_Recv(&recvdata, 1, MPI_DOUBLE, i, 0, group_work, MPI_STATUS_IGNORE);
                 recvsum += recvdata;
