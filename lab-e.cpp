@@ -26,7 +26,8 @@ int main(int argc, char *argv[]){
         while(1){
             double num = distrib(gen);
             std::cout << "工作进程" << world_rank - P << "发送数据: " << num << std::endl;
-            MPI_Sendrecv(&num, 1, MPI_DOUBLE, 0, 0, &globalAvg, 1, MPI_DOUBLE, 0, 1, group_work, MPI_STATUS_IGNORE);
+            MPI_Send(&num, 1, MPI_DOUBLE, 0, 0, group_work);
+            MPI_Bcast(&globalAvg, 1, MPI_DOUBLE, 0, group_work);
             std::cout << "工作进程" << world_rank - P << "收到的广播平均值: " << globalAvg << std::endl;
         }
     }
@@ -35,11 +36,10 @@ int main(int argc, char *argv[]){
         double recvdata;
         MPI_Comm_size(group_work, &group_size);
         MPI_Comm_rank(group_work, &group_rank);
-        std::cout << "cur_rank:" << group_rank << std::endl;
         while(1){
             double recvsum = 0;
             for(int i = 1; i < group_size; ++ i){
-                MPI_Recv(&recvdata, 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, group_work, MPI_STATUS_IGNORE);
+                MPI_Recv(&recvdata, 1, MPI_DOUBLE, i, 0, group_work, MPI_STATUS_IGNORE);
                 recvsum += recvdata;
             }
             std::cout << "服务器进程" << world_rank << "接收到的总和为: " << recvsum << std::endl;
