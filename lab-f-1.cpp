@@ -83,14 +83,14 @@ int main(int argc, char *argv[]) {
     int end_row = (rank == size - 1) ? rows_per_proc - 1 : rows_per_proc;
 
     // Update local matrix B based on local A
-    // if(rank == 0)
-    //     update(local_A, local_B, start_row, end_row, 0, 1);
-    // else if(rank == size - 1)
-    //     update(local_A, local_B, start_row, end_row, 1, 0);
-    // else
-    //     update(local_A, local_B, start_row, end_row, 1, 1);
+    if(rank == 0)
+        update(local_A, local_B, start_row, end_row, 0, 1);
+    else if(rank == size - 1)
+        update(local_A, local_B, start_row, end_row, 1, 0);
+    else
+        update(local_A, local_B, start_row, end_row, 1, 1);
     // Gather results into B
-    update(local_A, local_B, start_row, end_row, 0, 0);
+    //update(local_A, local_B, start_row, end_row, 0, 0);
     MPI_Gather(local_B.data(), rows_per_proc * N, MPI_DOUBLE, B.data(), rows_per_proc * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     double finish = MPI_Wtime();
     if (rank == 0) {

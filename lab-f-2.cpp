@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
 
     // Scatter submatrices of A to all processes
     std::vector<double> sub_A(rows_per_proc * cols_per_proc);
+    double start =  MPI_Wtime();//开始计时
     if (rank == 0) {
         for (int p = 0; p < size; p++) {
             int proc_row = p / q;
@@ -121,15 +122,16 @@ int main(int argc, char *argv[]) {
     } else {
         MPI_Send(local_B.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
     }
-
+    double finish = MPI_Wtime();
     if (rank == 0) {
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
-        for (int i = 0; i < N; i++) {
-            for(int j = 0; j < N; ++ j)
-                std::cout << B[i] << " ";
-            std::cout << std::endl;
-        }
+        printf("按棋盘式划分%d核耗时: %f\n", size, finish - start);
+        // for (int i = 0; i < N; i++) {
+        //     for(int j = 0; j < N; ++ j)
+        //         std::cout << B[i*N + j] << " ";
+        //     std::cout << std::endl;
+        // }
     }
 
     MPI_Finalize();
