@@ -11,6 +11,7 @@ void update(const std::vector<double> &A, std::vector<double> &B, int start_row,
     for (int i = start_row; i < end_row; i++) {
         for (int j = 1; j < N - 1; j++) {
             B[i * N + j] = (A[(i - 1) * N + j] + A[i * N + j + 1] + A[(i + 1) * N + j] + A[i * N + j - 1]) / 4.0;
+            std::cout << A[i*N + j] << std::endl;
         }
     }
 }
@@ -61,11 +62,11 @@ int main(int argc, char *argv[]) {
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
         printf("按行块划分耗时: %f\n", finish - start);
-        for (int i = 0; i < N; i++) {
-            for(int j = 0; j < N; ++ j)
-                std::cout << B[i*N + j] << " ";
-            std::cout << std::endl;
-        }
+        // for (int i = 0; i < N; i++) {
+        //     for(int j = 0; j < N; ++ j)
+        //         std::cout << B[i*N + j] << " ";
+        //     std::cout << std::endl;
+        // }
     }
 
     MPI_Finalize();
