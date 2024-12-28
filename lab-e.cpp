@@ -44,6 +44,7 @@ int main(int argc, char *argv[]){
             MPI_Allreduce(&recvsum, &globalAvg, 1, MPI_DOUBLE, MPI_SUM, group_server);
             globalAvg /= Q;
             MPI_Bcast(&globalAvg, 1, MPI_DOUBLE, 0, group_work);
+            MPI_Barrier(MPI_COMM_WORLD);
             std::cout << "服务器进程" << world_rank << "广播平均值: " << globalAvg << std::endl;
         }
     }
