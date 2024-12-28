@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
 
     update(local_A, local_B, start_row, end_row, start_col, end_col, proc_row > 0, proc_row < grid_dim - 1, proc_col > 0, proc_col < grid_dim - 1);
 
-    MPI_Gatherv(local_B.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, B.data(), send_counts.data(), displs.data(), block_type, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(local_B.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, B.data(), send_counts.data(), displs.data(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     double finish = MPI_Wtime();
     if (rank == 0) {
