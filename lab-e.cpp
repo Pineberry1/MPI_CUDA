@@ -24,7 +24,8 @@ int main(int argc, char *argv[]){
     double globalAvg;
     if(world_rank >= P){//工作进程
         while(1){
-            double num = distrib(gen);
+            //double num = distrib(gen);
+            double num = 1;
             std::cout << "工作进程" << world_rank - P << "发送数据: " << num << std::endl;
             MPI_Send(&num, 1, MPI_DOUBLE, 0, 0, group_work);
             MPI_Bcast(&globalAvg, 1, MPI_DOUBLE, 0, group_work);
