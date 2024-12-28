@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#define N 1024 // Matrix size
+#define N 2048 // Matrix size
 
 // Function to update matrix B based on matrix A
 void update(const std::vector<double> &A, std::vector<double> &B, int row_start, int row_end, int col_start, int col_end) {
@@ -124,9 +124,9 @@ int main(int argc, char *argv[]) {
     }
     double finish = MPI_Wtime();
     if (rank == 0) {
-        printf("行列式划分%d耗时: %f\n",size, finish - start);
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
+        printf("行列式划分%d耗时: %f\n",size, finish - start);
     }
 
     MPI_Finalize();
