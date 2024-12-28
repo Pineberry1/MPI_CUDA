@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <cstdlib>
+#include<cassert>
 
 #define N 2048 // Matrix size
 int rank, size, rows_per_proc, cols_per_proc, grid_dim;
