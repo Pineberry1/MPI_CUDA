@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <cstdlib>
+#include<cmath>
 
 #define N 2048 // Global matrix size
 
