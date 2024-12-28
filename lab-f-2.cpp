@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
         // }
     }
 
-    MPI_Type_free(&block_type);
+    //MPI_Type_free(&block_type);
     MPI_Finalize();
     return 0;
 }
