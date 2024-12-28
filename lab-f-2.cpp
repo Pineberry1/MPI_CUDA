@@ -1,82 +1,139 @@
-#include <iostream>
 #include <mpi.h>
+#include <iostream>
 #include <vector>
+#include <cmath>
 #include <cstdlib>
 
-// 计算每个进程上局部结果矩阵的值
-void compute_local_result(int process_rank, int total_processes, int matrix_size, std::vector<std::vector<double>>& local_matrix, std::vector<std::vector<double>>& result_matrix) {
-    // 计算每个进程所负责的子矩阵的大小
-    int local_matrix_size = matrix_size / total_processes;
+#define N 2048 // Matrix size
+int rank, size, rows_per_proc, cols_per_proc, grid_dim;
+int proc_row, proc_col;
 
-    // 计算当前进程的起始行和列
-    int start_row = (process_rank / (total_processes / 2)) * local_matrix_size;
-    int start_col = (process_rank % (total_processes / 2)) * local_matrix_size;
+// Function to update matrix B based on matrix A
+void update(const std::vector<double> &A, std::vector<double> &B, int start_row, int end_row, int start_col, int end_col, bool top_comm, bool bottom_comm, bool left_comm, bool right_comm) {
+    MPI_Request requests[4];
+    std::vector<double> recv_top(N), recv_bottom(N), recv_left(rows_per_proc), recv_right(rows_per_proc);
+    std::vector<double> send_top(cols_per_proc), send_bottom(cols_per_proc), send_left(rows_per_proc), send_right(rows_per_proc);
 
-    // 遍历当前进程分配的局部矩阵范围，计算结果矩阵的每个值
-    for (int i = start_row; i < start_row + local_matrix_size; i++) {
-        for (int j = start_col; j < start_col + local_matrix_size; j++) {
-            // 根据相邻元素的值计算结果矩阵的每个元素
-            result_matrix[i - start_row][j - start_col] = (
-                (i > 0 && j > 0 ? local_matrix[i - start_row - 1][j - start_col - 1] : local_matrix[i - start_row][j - start_col]) + // 上左
-                (i > 0 ? local_matrix[i - start_row - 1][j - start_col] : local_matrix[i - start_row][j - start_col]) + // 上
-                (i > 0 && j < local_matrix_size - 1 ? local_matrix[i - start_row - 1][j - start_col + 1] : local_matrix[i - start_row][j - start_col]) + // 上右
-                (j > 0 ? local_matrix[i - start_row][j - start_col - 1] : local_matrix[i - start_row][j - start_col]) + // 左
-                (j < local_matrix_size - 1 ? local_matrix[i - start_row][j - start_col + 1] : local_matrix[i - start_row][j - start_col]) + // 右
-                (i < local_matrix_size - 1 && j > 0 ? local_matrix[i - start_row + 1][j - start_col - 1] : local_matrix[i - start_row][j - start_col]) + // 下左
-                (i < local_matrix_size - 1 ? local_matrix[i - start_row + 1][j - start_col] : local_matrix[i - start_row][j - start_col]) + // 下
-                (i < local_matrix_size - 1 && j < local_matrix_size - 1 ? local_matrix[i - start_row + 1][j - start_col + 1] : local_matrix[i - start_row][j - start_col]) // 下右
-            ) / 4.0;  // 计算均值
+    if (top_comm) {
+        for (int j = 0; j < cols_per_proc; ++j) send_top[j] = A[j];
+        MPI_Isend(send_top.data(), cols_per_proc, MPI_DOUBLE, rank - grid_dim, 0, MPI_COMM_WORLD, &requests[0]);
+        MPI_Irecv(recv_top.data(), cols_per_proc, MPI_DOUBLE, rank - grid_dim, 1, MPI_COMM_WORLD, &requests[0]);
+    }
+    if (bottom_comm) {
+        for (int j = 0; j < cols_per_proc; ++j) send_bottom[j] = A[(rows_per_proc - 1) * cols_per_proc + j];
+        MPI_Isend(send_bottom.data(), cols_per_proc, MPI_DOUBLE, rank + grid_dim, 1, MPI_COMM_WORLD, &requests[1]);
+        MPI_Irecv(recv_bottom.data(), cols_per_proc, MPI_DOUBLE, rank + grid_dim, 0, MPI_COMM_WORLD, &requests[1]);
+    }
+    if (left_comm) {
+        for (int i = 0; i < rows_per_proc; ++i) send_left[i] = A[i * cols_per_proc];
+        MPI_Isend(send_left.data(), rows_per_proc, MPI_DOUBLE, rank - 1, 2, MPI_COMM_WORLD, &requests[2]);
+        MPI_Irecv(recv_left.data(), rows_per_proc, MPI_DOUBLE, rank - 1, 3, MPI_COMM_WORLD, &requests[2]);
+    }
+    if (right_comm) {
+        for (int i = 0; i < rows_per_proc; ++i) send_right[i] = A[i * cols_per_proc + (cols_per_proc - 1)];
+        MPI_Isend(send_right.data(), rows_per_proc, MPI_DOUBLE, rank + 1, 3, MPI_COMM_WORLD, &requests[3]);
+        MPI_Irecv(recv_right.data(), rows_per_proc, MPI_DOUBLE, rank + 1, 2, MPI_COMM_WORLD, &requests[3]);
+    }
+
+    for (int i = start_row; i < end_row; i++) {
+        for (int j = start_col; j < end_col; j++) {
+            B[i * cols_per_proc + j] = 0;
+            if (i > 0) B[i * cols_per_proc + j] += A[(i - 1) * cols_per_proc + j];
+            if (i < rows_per_proc - 1) B[i * cols_per_proc + j] += A[(i + 1) * cols_per_proc + j];
+            if (j > 0) B[i * cols_per_proc + j] += A[i * cols_per_proc + (j - 1)];
+            if (j < cols_per_proc - 1) B[i * cols_per_proc + j] += A[i * cols_per_proc + (j + 1)];
         }
+    }
+
+    if (top_comm) {
+        MPI_Wait(&requests[0], MPI_STATUS_IGNORE);
+        for (int j = 0; j < cols_per_proc; ++j) {
+            B[j] += recv_top[j];
+        }
+    }
+    if (bottom_comm) {
+        MPI_Wait(&requests[1], MPI_STATUS_IGNORE);
+        for (int j = 0; j < cols_per_proc; ++j) {
+            B[(rows_per_proc - 1) * cols_per_proc + j] += recv_bottom[j];
+        }
+    }
+    if (left_comm) {
+        MPI_Wait(&requests[2], MPI_STATUS_IGNORE);
+        for (int i = 0; i < rows_per_proc; ++i) {
+            B[i * cols_per_proc] += recv_left[i];
+        }
+    }
+    if (right_comm) {
+        MPI_Wait(&requests[3], MPI_STATUS_IGNORE);
+        for (int i = 0; i < rows_per_proc; ++i) {
+            B[i * cols_per_proc + (cols_per_proc - 1)] += recv_right[i];
+        }
+    }
+
+    for (auto &x : B) {
+        x /= 4;
     }
 }
 
-int main(int argc, char** argv) {
-    int process_rank, total_processes;
-    MPI_Init(&argc, &argv); // 初始化 MPI 环境
-    MPI_Comm_rank(MPI_COMM_WORLD, &process_rank); // 获取当前进程的 rank
-    MPI_Comm_size(MPI_COMM_WORLD, &total_processes); // 获取进程总数
+int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int matrix_size = 100; // 定义矩阵的大小
-    std::vector<std::vector<double>> matrix_A(matrix_size, std::vector<double>(matrix_size)); // 初始化矩阵 A
-    std::vector<std::vector<double>> matrix_B(matrix_size, std::vector<double>(matrix_size)); // 初始化矩阵 B
-    std::vector<std::vector<double>> local_A, local_B; // 每个进程上局部的 A 和 B 矩阵
+    grid_dim = std::sqrt(size);
+    if (grid_dim * grid_dim != size) {
+        if (rank == 0) std::cerr << "Number of processors must be a perfect square." << std::endl;
+        MPI_Finalize();
+        return -1;
+    }
 
-    if (process_rank == 0) {
-        // 初始化矩阵 A，赋值为 [0, 1) 范围内的随机数
-        for (int i = 0; i < matrix_size; i++) {
-            for (int j = 0; j < matrix_size; j++) {
-                matrix_A[i][j] = static_cast<double>(rand()) / RAND_MAX;
-            }
+    rows_per_proc = N / grid_dim;
+    cols_per_proc = N / grid_dim;
+    proc_row = rank / grid_dim;
+    proc_col = rank % grid_dim;
+
+    std::vector<double> A, B;
+    if (rank == 0) {
+        A.resize(N * N);
+        B.resize(N * N);
+        for (int i = 0; i < N * N; i++) {
+            A[i] = rand() % 100;
         }
     }
+
     double start = MPI_Wtime();
-    // 广播矩阵大小 N 到所有进程
-    MPI_Bcast(&matrix_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    int local_matrix_size = matrix_size / total_processes; // 计算每个进程分配的子矩阵大小
-    local_A.resize(local_matrix_size, std::vector<double>(local_matrix_size)); // 为 local_A 分配内存
-    local_B.resize(local_matrix_size, std::vector<double>(local_matrix_size)); // 为 local_B 分配内存
+    std::vector<double> local_A(rows_per_proc * cols_per_proc);
+    std::vector<double> local_B(rows_per_proc * cols_per_proc);
 
-    // 定义 MPI 数据类型，表示子矩阵
-    MPI_Datatype submatrix_type;
-    MPI_Type_vector(local_matrix_size, local_matrix_size, matrix_size, MPI_DOUBLE, &submatrix_type);
-    MPI_Type_commit(&submatrix_type);
+    MPI_Datatype block_type;
+    MPI_Type_vector(rows_per_proc, cols_per_proc, N, MPI_DOUBLE, &block_type);
+    MPI_Type_create_resized(block_type, 0, cols_per_proc * sizeof(double), &block_type);
+    MPI_Type_commit(&block_type);
 
-    // 使用 MPI_Scatter 将矩阵 A 划分到各个进程
-    MPI_Scatter(matrix_A.data(), 1, submatrix_type, local_A.data(), local_matrix_size * local_matrix_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    std::vector<int> send_counts(size, 1);
+    std::vector<int> displs(size);
+    for (int i = 0; i < grid_dim; ++i) {
+        for (int j = 0; j < grid_dim; ++j) {
+            displs[i * grid_dim + j] = i * rows_per_proc * N + j * cols_per_proc;
+        }
+    }
 
-    // 每个进程根据自己的局部矩阵计算局部结果矩阵
-    compute_local_result(process_rank, total_processes, matrix_size, local_A, local_B);
+    MPI_Scatterv(A.data(), send_counts.data(), displs.data(), block_type, local_A.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // 将各个进程计算的局部结果矩阵收集到主进程
-    MPI_Gather(local_B.data(), local_matrix_size * local_matrix_size, MPI_DOUBLE, matrix_B.data(), 1, submatrix_type, 0, MPI_COMM_WORLD);
+    int start_row = (proc_row == 0) ? 1 : 0;
+    int end_row = (proc_row == grid_dim - 1) ? rows_per_proc - 1 : rows_per_proc;
+    int start_col = (proc_col == 0) ? 1 : 0;
+    int end_col = (proc_col == grid_dim - 1) ? cols_per_proc - 1 : cols_per_proc;
 
-    // 在主进程输出计算结果矩阵
+    update(local_A, local_B, start_row, end_row, start_col, end_col, proc_row > 0, proc_row < grid_dim - 1, proc_col > 0, proc_col < grid_dim - 1);
+
+    MPI_Gatherv(local_B.data(), rows_per_proc * cols_per_proc, MPI_DOUBLE, B.data(), send_counts.data(), displs.data(), block_type, 0, MPI_COMM_WORLD);
+
     double finish = MPI_Wtime();
-    if (process_rank == 0) {
-        // Optionally verify results or print
+    if (rank == 0) {
         std::cout << "Matrix update completed." << std::endl;
-        printf("按棋盘划分%d核耗时: %f\n", total_processes, finish - start);
+        printf("棋盘划分%d核耗时: %f\n", size, finish - start);
         // for (int i = 0; i < N; i++) {
         //     for(int j = 0; j < N; ++ j)
         //         std::cout << B[i*N + j] << " ";
@@ -84,6 +141,7 @@ int main(int argc, char** argv) {
         // }
     }
 
-    MPI_Finalize(); // 结束 MPI 环境
+    MPI_Type_free(&block_type);
+    MPI_Finalize();
     return 0;
 }
