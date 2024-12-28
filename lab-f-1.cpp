@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #define N 16 // Matrix size
-
+int rank, size, rows_per_proc;
 // Function to update matrix B based on matrix A
 void update(const std::vector<double> &A, std::vector<double> &B, int start_row, int end_row, bool start_comm, bool end_comm) {
     MPI_Request requests[2];
@@ -24,7 +24,7 @@ void update(const std::vector<double> &A, std::vector<double> &B, int start_row,
         for (int j = 1; j < N - 1; j++) {
             B[i * N + j] = (A[i * N + j + 1] + A[i * N + j - 1]);
             if(i > 0) B[i * N + j] += A[(i - 1) * N + j];
-            if(i < end_row - 1) B[i * N + j] += A[(i + 1) * N + j];
+            if(i < rows_per_proc - 1) B[i * N + j] += A[(i + 1) * N + j];
             //B[i * N + j] /= 4;
             //std::cout << A[i*N + j] << " ";
         }
@@ -48,7 +48,6 @@ void update(const std::vector<double> &A, std::vector<double> &B, int start_row,
 }
 
 int main(int argc, char *argv[]) {
-    int rank, size;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -72,7 +71,7 @@ int main(int argc, char *argv[]) {
     }
     double start =  MPI_Wtime();//开始计时
     // Allocate local matrices
-    int rows_per_proc = N / size;
+    rows_per_proc = N / size;
     std::vector<double> local_A(rows_per_proc * N);
     std::vector<double> local_B(rows_per_proc * N);
 
