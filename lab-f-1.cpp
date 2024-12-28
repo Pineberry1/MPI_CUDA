@@ -18,7 +18,7 @@ void update(const std::vector<double> &A, std::vector<double> &B, int start_row,
     }
     if(end_comm){
         MPI_Isend(&*(A.end() - N), N, MPI_DOUBLE, rank + 1, rank, MPI_COMM_WORLD, &requests[1]);
-        MPI_Irecv(recvnum + N, N, MPI_DOUBLE, rank + 1, rank + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE, &requests[1]);
+        MPI_Irecv(recvnum + N, N, MPI_DOUBLE, rank + 1, rank + 1, MPI_COMM_WORLD, &requests[1]);
     }
     for (int i = start_row; i < end_row; i++) {
         for (int j = 1; j < N - 1; j++) {
