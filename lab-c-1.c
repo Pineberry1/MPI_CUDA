@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
     // 假设 N 为 2 的幂次方
     int N = world_size;
     int local_sum = world_rank + 1;  // 每个进程的数据
+    double start =  MPI_Wtime();//开始计时
 
     // 蝶式全和
     int step;
@@ -28,10 +29,13 @@ int main(int argc, char *argv[]) {
             local_sum += received_sum;
         }
     }
-
+    MPI_Barrier(MPI_COMM_WORLD);
+    double finish = MPI_Wtime();
     // 输出每个进程最终的全和
     printf("Rank %d, Global sum: %d\n", world_rank, local_sum);
-
+    if(world_rank == 0){
+        printf("碟式全和耗时: %f\n", finish - start);
+    }
     MPI_Finalize();
     return 0;
 }
