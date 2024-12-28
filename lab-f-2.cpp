@@ -125,6 +125,11 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         // Optionally verify results or print
         std::cout << "Matrix update completed." << std::endl;
+        for (int i = 0; i < N; i++) {
+            for(int j = 0; j < N; ++ j)
+                std::cout << B[i] << " ";
+            std::cout << std::endl;
+        }
     }
 
     MPI_Finalize();
